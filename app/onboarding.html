@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เริ่มต้นใช้งาน - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <main
+    class="main"
+    style="max-width:440px; padding-top:60px;"
+    x-data="onboardingPage()"
+    x-init="init()"
+  >
+    <h2 style="text-align:center;">เริ่มต้นใช้งาน</h2>
+    <p class="text-muted" style="text-align:center;">
+      คุณยังไม่ได้อยู่ในชุมชนไหน สร้างชุมชนใหม่ หรือเข้าร่วมด้วยรหัสเชิญ
+    </p>
+
+    <div class="card">
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button
+          class="btn"
+          :class="tab === 'create' ? 'btn-primary' : ''"
+          style="flex:1;"
+          @click="tab = 'create'; errorMsg = ''"
+        >
+          สร้างชุมชนใหม่
+        </button>
+        <button
+          class="btn"
+          :class="tab === 'join' ? 'btn-primary' : ''"
+          style="flex:1;"
+          @click="tab = 'join'; errorMsg = ''"
+        >
+          เข้าร่วมด้วยรหัส
+        </button>
+      </div>
+
+      <template x-if="tab === 'create'">
+        <div>
+          <div class="form-group">
+            <label for="communityName">ชื่อชุมชน</label>
+            <input type="text" id="communityName" x-model="communityName" placeholder="เช่น หมู่บ้านสุขใจ" />
+          </div>
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+          <button class="btn btn-primary btn-block" :disabled="loading" @click="handleCreate()">
+            <span x-text="loading ? 'กำลังสร้าง...' : 'สร้างชุมชน'"></span>
+          </button>
+        </div>
+      </template>
+
+      <template x-if="tab === 'join'">
+        <div>
+          <div class="form-group">
+            <label for="inviteCode">รหัสเชิญ</label>
+            <input type="text" id="inviteCode" x-model="inviteCode" placeholder="เช่น a1b2c3d4" />
+          </div>
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+          <button class="btn btn-primary btn-block" :disabled="loading" @click="handleJoin()">
+            <span x-text="loading ? 'กำลังเข้าร่วม...' : 'เข้าร่วมชุมชน'"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <p class="text-muted" style="text-align:center; font-size:0.85rem;">
+      <a href="#" @click.prevent="Auth.signOut()">ออกจากระบบ</a>
+    </p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function onboardingPage() {
+      return {
+        tab: "create",
+        communityName: "",
+        inviteCode: "",
+        loading: false,
+        errorMsg: "",
+
+        async init() {
+          const user = await Auth.requireAuth();
+          if (!user) return;
+
+          // ถ้ามีชุมชนอยู่แล้วให้ข้ามไปหน้า dashboard เลย ไม่ต้อง onboarding ซ้ำ
+          const { data } = await Community.getMyCommunities();
+          if (data && data.length > 0) {
+            Community.setCurrentId(data[0].community_id);
+            window.location.href = "/app/dashboard.html";
+          }
+        },
+
+        async handleCreate() {
+          this.errorMsg = "";
+          if (!this.communityName.trim()) {
+            this.errorMsg = "กรุณากรอกชื่อชุมชน";
+            return;
+          }
+          this.loading = true;
+          const { data, error } = await Community.create(this.communityName.trim());
+          this.loading = false;
+          if (error) {
+            this.errorMsg = "สร้างชุมชนไม่สำเร็จ: " + error.message;
+            return;
+          }
+          Community.setCurrentId(data.id);
+          window.location.href = "/app/dashboard.html";
+        },
+
+        async handleJoin() {
+          this.errorMsg = "";
+          if (!this.inviteCode.trim()) {
+            this.errorMsg = "กรุณากรอกรหัสเชิญ";
+            return;
+          }
+          this.loading = true;
+          const { data, error } = await Community.joinByCode(this.inviteCode.trim());
+          this.loading = false;
+          if (error) {
+            this.errorMsg = "เข้าร่วมไม่สำเร็จ: " + error.message;
+            return;
+          }
+          Community.setCurrentId(data.id);
+          window.location.href = "/app/dashboard.html";
+        },
+      };
+    }
+  </script>
+</body>
+</html>

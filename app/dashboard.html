@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>สรุปยอด - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html" class="active">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="dashboardPage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+      <h2>สรุปยอด — เดือนนี้</h2>
+
+      <div class="alert-banner" x-show="!loading && overBudgetCategories.length > 0">
+        🔔 มี <span x-text="overBudgetCategories.length"></span> หมวดหมู่ที่ใช้เกินงบประมาณเดือนนี้:
+        <span x-text="overBudgetCategories.join(', ')"></span>
+        — <a href="/app/budgets.html" style="color:inherit; text-decoration:underline;">ดูรายละเอียด</a>
+      </div>
+
+      <div class="card" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; text-align:center;">
+        <div>
+          <p class="text-muted" style="margin:0; font-size:0.85rem;">รายรับ</p>
+          <p class="amount-income" style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalIncome)"></p>
+        </div>
+        <div>
+          <p class="text-muted" style="margin:0; font-size:0.85rem;">รายจ่าย</p>
+          <p class="amount-expense" style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalExpense)"></p>
+        </div>
+        <div>
+          <p class="text-muted" style="margin:0; font-size:0.85rem;">คงเหลือ</p>
+          <p style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(balance)"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted">สัดส่วนรายรับกับรายจ่าย</p>
+        <div x-show="loading" class="empty-state">กำลังโหลด...</div>
+        <div style="position:relative; height:260px;" x-show="!loading && (totalIncome > 0 || totalExpense > 0)">
+          <canvas id="incomeExpenseChart"></canvas>
+        </div>
+        <div class="empty-state" x-show="!loading && totalIncome === 0 && totalExpense === 0">ยังไม่มีรายการเดือนนี้</div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted">แยกหมวดหมู่รายรับ</p>
+        <div x-show="loading" class="empty-state">กำลังโหลด...</div>
+        <div style="position:relative; height:260px;" x-show="!loading && totalIncome > 0">
+          <canvas id="incomeCategoryChart"></canvas>
+        </div>
+        <div class="empty-state" x-show="!loading && totalIncome === 0">ยังไม่มีรายรับเดือนนี้</div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted">แยกหมวดหมู่รายจ่าย</p>
+        <div x-show="loading" class="empty-state">กำลังโหลด...</div>
+        <div style="position:relative; height:260px;" x-show="!loading && totalExpense > 0">
+          <canvas id="expenseCategoryChart"></canvas>
+        </div>
+        <div class="empty-state" x-show="!loading && totalExpense === 0">ยังไม่มีรายจ่ายเดือนนี้</div>
+      </div>
+
+      <div class="card" x-show="!loading && categoryBreakdown.some(c => c.type === 'income')">
+        <p class="text-muted">สรุปรายรับตามหมวดหมู่</p>
+        <template x-for="c in categoryBreakdown.filter(c => c.type === 'income')" :key="c.name">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
+            <span x-text="c.icon + ' ' + c.name"></span>
+            <span class="amount-income" x-text="'+' + formatCurrency(c.total)"></span>
+          </div>
+        </template>
+      </div>
+
+      <div class="card" x-show="!loading && categoryBreakdown.some(c => c.type === 'expense')">
+        <p class="text-muted">สรุปรายจ่ายตามหมวดหมู่</p>
+        <template x-for="c in categoryBreakdown.filter(c => c.type === 'expense')" :key="c.name">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
+            <span x-text="c.icon + ' ' + c.name"></span>
+            <span class="amount-expense" x-text="'-' + formatCurrency(c.total)"></span>
+          </div>
+        </template>
+      </div>
+
+      <div class="card">
+        <p class="text-muted">รายการล่าสุด</p>
+        <div x-show="!loading && recentTransactions.length === 0" class="empty-state">ยังไม่มีรายการ</div>
+        <template x-for="t in recentTransactions" :key="t.id">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
+            <div>
+              <div x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่')"></div>
+              <div class="text-muted" style="font-size:0.8rem;" x-text="formatDate(t.transaction_date)"></div>
+            </div>
+            <div :class="t.type === 'income' ? 'amount-income' : 'amount-expense'" x-text="(t.type === 'income' ? '+' : '-') + formatCurrency(t.amount)"></div>
+          </div>
+        </template>
+        <a href="/app/transactions.html" class="text-muted" style="font-size:0.85rem; display:inline-block; margin-top:8px;">ดูรายการทั้งหมด →</a>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html" class="active">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function dashboardPage() {
+      return {
+        loading: true,
+        totalIncome: 0,
+        totalExpense: 0,
+        balance: 0,
+        recentTransactions: [],
+        categoryBreakdown: [],
+        overBudgetCategories: [],
+        incomeExpenseChartInstance: null,
+        incomeCategoryChartInstance: null,
+        expenseCategoryChartInstance: null,
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            await this.loadData();
+          } else {
+            document.addEventListener("app:ready", () => this.loadData());
+          }
+        },
+
+        async loadData() {
+          this.loading = true;
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = now.getMonth() + 1;
+          const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+          const lastDay = new Date(year, month, 0).getDate();
+          const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+          const [{ data, error }, budgetRes] = await Promise.all([
+            DB.listTransactions({
+              communityId: window.CURRENT_COMMUNITY_ID,
+              startDate,
+              endDate,
+            }),
+            DB.listBudgets(window.CURRENT_COMMUNITY_ID, year, month),
+          ]);
+
+          if (error) {
+            console.error(error);
+            this.loading = false;
+            return;
+          }
+
+          this.totalIncome = data
+            .filter((t) => t.type === "income")
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          this.totalExpense = data
+            .filter((t) => t.type === "expense")
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          this.balance = this.totalIncome - this.totalExpense;
+          this.recentTransactions = data.slice(0, 5);
+
+          const breakdownMap = {};
+          data.forEach((t) => {
+            const key = t.category_id || "none";
+            if (!breakdownMap[key]) {
+              breakdownMap[key] = {
+                name: t.categories ? t.categories.name : "ไม่ระบุหมวดหมู่",
+                icon: t.categories ? t.categories.icon : "📦",
+                type: t.type,
+                total: 0,
+              };
+            }
+            breakdownMap[key].total += Number(t.amount);
+          });
+          this.categoryBreakdown = Object.values(breakdownMap).sort((a, b) => b.total - a.total);
+
+          const spentByCategory = {};
+          data
+            .filter((t) => t.type === "expense" && t.category_id)
+            .forEach((t) => {
+              spentByCategory[t.category_id] =
+                (spentByCategory[t.category_id] || 0) + Number(t.amount);
+            });
+
+          this.overBudgetCategories = (budgetRes.data || [])
+            .filter((b) => (spentByCategory[b.category_id] || 0) >= Number(b.amount_limit))
+            .map((b) => (b.categories ? b.categories.name : "ไม่ระบุหมวดหมู่"));
+
+          this.loading = false;
+          this.$nextTick(() => {
+            this.renderIncomeExpenseChart();
+            this.renderIncomeCategoryChart();
+            this.renderExpenseCategoryChart();
+          });
+        },
+
+        renderIncomeExpenseChart() {
+          if (this.totalIncome === 0 && this.totalExpense === 0) return;
+
+          const ctx = document.getElementById("incomeExpenseChart");
+          if (!ctx || typeof Chart === "undefined") return;
+          if (this.incomeExpenseChartInstance) this.incomeExpenseChartInstance.destroy();
+
+          this.incomeExpenseChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: ["รายรับ", "รายจ่าย"],
+              datasets: [
+                {
+                  data: [this.totalIncome, this.totalExpense],
+                  backgroundColor: ["#16a34a", "#c0392b"],
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { x: { beginAtZero: true } },
+            },
+          });
+        },
+
+        renderIncomeCategoryChart() {
+          const incomeCats = this.categoryBreakdown.filter((c) => c.type === "income");
+          if (incomeCats.length === 0) return;
+
+          const ctx = document.getElementById("incomeCategoryChart");
+          if (!ctx || typeof Chart === "undefined") return;
+          if (this.incomeCategoryChartInstance) this.incomeCategoryChartInstance.destroy();
+
+          this.incomeCategoryChartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: incomeCats.map((c) => c.name),
+              datasets: [
+                {
+                  data: incomeCats.map((c) => c.total),
+                  backgroundColor: [
+                    "#16a34a",
+                    "#2f7d5f",
+                    "#3498db",
+                    "#9b59b6",
+                    "#e6a23c",
+                    "#1abc9c",
+                    "#7f8c8d",
+                  ],
+                },
+              ],
+            },
+            options: {
+              maintainAspectRatio: false,
+              plugins: { legend: { position: "bottom" } },
+            },
+          });
+        },
+
+        renderExpenseCategoryChart() {
+          const expenseCats = this.categoryBreakdown.filter((c) => c.type === "expense");
+          if (expenseCats.length === 0) return;
+
+          const ctx = document.getElementById("expenseCategoryChart");
+          if (!ctx || typeof Chart === "undefined") return;
+          if (this.expenseCategoryChartInstance) this.expenseCategoryChartInstance.destroy();
+
+          this.expenseCategoryChartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: expenseCats.map((c) => c.name),
+              datasets: [
+                {
+                  data: expenseCats.map((c) => c.total),
+                  backgroundColor: [
+                    "#c0392b",
+                    "#e67e22",
+                    "#e6a23c",
+                    "#3498db",
+                    "#9b59b6",
+                    "#1abc9c",
+                    "#7f8c8d",
+                  ],
+                },
+              ],
+            },
+            options: {
+              maintainAspectRatio: false,
+              plugins: { legend: { position: "bottom" } },
+            },
+          });
+        },
+
+        formatCurrency(n) {
+          return AppUtils.formatCurrency(n);
+        },
+        formatDate(d) {
+          return AppUtils.formatDate(d);
+        },
+      };
+    }
+  </script>
+</body>
+</html>

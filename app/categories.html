@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>หมวดหมู่ - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html" class="active">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="categoriesPage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <h2>หมวดหมู่</h2>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <template x-if="!loading">
+        <div>
+          <div class="card">
+            <p class="text-muted" style="margin-top:0;">รายรับ</p>
+            <template x-for="c in incomeCategories" :key="c.id">
+              <div class="transaction-row">
+                <span x-text="c.icon + ' ' + c.name"></span>
+                <span>
+                  <span x-show="c.community_id === null" class="text-muted" style="font-size:0.8rem;">ระบบ</span>
+                  <template x-if="c.community_id !== null">
+                    <span>
+                      <a href="#" @click.prevent="openEdit(c)" style="margin-right:10px;">แก้ไข</a>
+                      <a href="#" @click.prevent="handleDelete(c)" style="color:#c0392b;">ลบ</a>
+                    </span>
+                  </template>
+                </span>
+              </div>
+            </template>
+            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd('income')">+ เพิ่มหมวดหมู่รายรับ</button>
+          </div>
+
+          <div class="card">
+            <p class="text-muted" style="margin-top:0;">รายจ่าย</p>
+            <template x-for="c in expenseCategories" :key="c.id">
+              <div class="transaction-row">
+                <span x-text="c.icon + ' ' + c.name"></span>
+                <span>
+                  <span x-show="c.community_id === null" class="text-muted" style="font-size:0.8rem;">ระบบ</span>
+                  <template x-if="c.community_id !== null">
+                    <span>
+                      <a href="#" @click.prevent="openEdit(c)" style="margin-right:10px;">แก้ไข</a>
+                      <a href="#" @click.prevent="handleDelete(c)" style="color:#c0392b;">ลบ</a>
+                    </span>
+                  </template>
+                </span>
+              </div>
+            </template>
+            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd('expense')">+ เพิ่มหมวดหมู่รายจ่าย</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Modal ฟอร์มเพิ่ม/แก้ไขหมวดหมู่ -->
+      <div class="modal-overlay" x-show="showForm" x-cloak @click.self="closeForm()">
+        <div class="modal-card">
+          <h3 x-text="editingId ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่'"></h3>
+
+          <div class="form-group">
+            <label>ไอคอน (emoji)</label>
+            <input type="text" x-model="form.icon" maxlength="4" placeholder="💰" style="width:80px; text-align:center; font-size:1.3rem;" />
+          </div>
+
+          <div class="form-group">
+            <label>ชื่อหมวดหมู่</label>
+            <input type="text" x-model="form.name" placeholder="เช่น ค่าอาหาร" />
+          </div>
+
+          <div class="form-group">
+            <label>สี</label>
+            <input type="color" x-model="form.color" style="width:60px; padding:2px; height:40px;" />
+          </div>
+
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="closeForm()">ยกเลิก</button>
+            <button class="btn btn-primary" style="flex:1;" :disabled="saving" @click="submitForm()">
+              <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function categoriesPage() {
+      return {
+        loading: true,
+        saving: false,
+        categories: [],
+        showForm: false,
+        editingId: null,
+        errorMsg: "",
+        form: { name: "", icon: "💰", color: "#2f7d5f", type: "expense" },
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            await this.loadCategories();
+          } else {
+            document.addEventListener("app:ready", () => this.loadCategories());
+          }
+        },
+
+        async loadCategories() {
+          this.loading = true;
+          const { data, error } = await DB.listCategories(window.CURRENT_COMMUNITY_ID);
+          if (!error) this.categories = data;
+          this.loading = false;
+        },
+
+        get incomeCategories() {
+          return this.categories.filter((c) => c.type === "income");
+        },
+        get expenseCategories() {
+          return this.categories.filter((c) => c.type === "expense");
+        },
+
+        openAdd(type) {
+          this.editingId = null;
+          this.errorMsg = "";
+          this.form = { name: "", icon: type === "income" ? "💰" : "📦", color: type === "income" ? "#2f7d5f" : "#c0392b", type };
+          this.showForm = true;
+        },
+
+        openEdit(c) {
+          this.editingId = c.id;
+          this.errorMsg = "";
+          this.form = { name: c.name, icon: c.icon, color: c.color, type: c.type };
+          this.showForm = true;
+        },
+
+        closeForm() {
+          this.showForm = false;
+        },
+
+        async submitForm() {
+          this.errorMsg = "";
+          if (!this.form.name.trim()) {
+            this.errorMsg = "กรุณากรอกชื่อหมวดหมู่";
+            return;
+          }
+          this.saving = true;
+
+          const payload = {
+            name: this.form.name.trim(),
+            icon: this.form.icon || "💰",
+            color: this.form.color,
+            type: this.form.type,
+          };
+
+          const result = this.editingId
+            ? await DB.updateCategory(this.editingId, payload)
+            : await DB.createCategory(payload);
+
+          this.saving = false;
+          if (result.error) {
+            this.errorMsg = "บันทึกไม่สำเร็จ: " + result.error.message;
+            return;
+          }
+          this.showForm = false;
+          await this.loadCategories();
+        },
+
+        async handleDelete(c) {
+          if (!confirm(`ลบหมวดหมู่ "${c.name}"? รายการเก่าที่ใช้หมวดหมู่นี้จะกลายเป็น "ไม่ระบุหมวดหมู่"`)) return;
+          const { error } = await DB.deleteCategory(c.id);
+          if (error) {
+            alert("ลบไม่สำเร็จ: " + error.message);
+            return;
+          }
+          await this.loadCategories();
+        },
+      };
+    }
+  </script>
+</body>
+</html>

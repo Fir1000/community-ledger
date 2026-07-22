@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>รายรับ-รายจ่าย - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html" class="active">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="transactionsPage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>รายรับ-รายจ่าย</h2>
+        <input type="month" x-model="filterMonth" @change="loadTransactions()" style="padding:8px; border:1px solid var(--color-border); border-radius:8px;" />
+      </div>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <div class="card" x-show="!loading && transactions.length === 0">
+        <div class="empty-state">ยังไม่มีรายการในเดือนนี้ กดปุ่ม + เพื่อเพิ่มรายการแรก</div>
+      </div>
+
+      <div class="card" x-show="!loading && transactions.length > 0">
+        <template x-for="t in transactions" :key="t.id">
+          <div class="transaction-row" @click="openEditForm(t)">
+            <div>
+              <div x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่')"></div>
+              <div class="text-muted" style="font-size:0.8rem;" x-text="formatDate(t.transaction_date) + (t.note ? ' · ' + t.note : '')"></div>
+            </div>
+            <div :class="t.type === 'income' ? 'amount-income' : 'amount-expense'" x-text="(t.type === 'income' ? '+' : '-') + formatCurrency(t.amount)"></div>
+          </div>
+        </template>
+      </div>
+
+      <button class="fab" @click="openAddForm('expense')">+</button>
+
+      <!-- Modal ฟอร์มเพิ่ม/แก้ไขรายการ -->
+      <div class="modal-overlay" x-show="showForm" x-cloak @click.self="closeForm()">
+        <div class="modal-card">
+          <h3 x-text="editingId ? 'แก้ไขรายการ' : 'เพิ่มรายการ'"></h3>
+
+          <div class="segmented">
+            <button :class="form.type === 'income' ? 'active-income' : ''" @click="form.type = 'income'; form.category_id = ''">รายรับ</button>
+            <button :class="form.type === 'expense' ? 'active-expense' : ''" @click="form.type = 'expense'; form.category_id = ''">รายจ่าย</button>
+          </div>
+
+          <div class="form-group">
+            <label>จำนวนเงิน (บาท)</label>
+            <input type="number" step="0.01" min="0.01" x-model="form.amount" placeholder="0.00" />
+          </div>
+
+          <div class="form-group">
+            <label>หมวดหมู่</label>
+            <select x-model="form.category_id">
+              <option value="">-- เลือกหมวดหมู่ --</option>
+              <template x-for="c in categoriesForType(form.type)" :key="c.id">
+                <option :value="c.id" x-text="c.icon + ' ' + c.name"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>วันที่</label>
+            <input type="date" x-model="form.transaction_date" />
+          </div>
+
+          <div class="form-group">
+            <label>บันทึกเพิ่มเติม (ไม่บังคับ)</label>
+            <textarea x-model="form.note" rows="2" placeholder="รายละเอียด"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>รูปใบเสร็จ (ไม่บังคับ)</label>
+            <input type="file" accept="image/*" @change="onReceiptFileChange($event)" />
+            <img x-show="receiptPreviewUrl" :src="receiptPreviewUrl" class="receipt-thumb" />
+          </div>
+
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="closeForm()">ยกเลิก</button>
+            <button class="btn btn-primary" style="flex:1;" :disabled="saving" @click="submitForm()">
+              <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
+            </button>
+          </div>
+
+          <button
+            x-show="editingId"
+            class="btn btn-danger btn-block"
+            style="margin-top:8px;"
+            :disabled="saving"
+            @click="handleDelete()"
+          >
+            ลบรายการนี้
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html" class="active">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function transactionsPage() {
+      return {
+        loading: true,
+        saving: false,
+        transactions: [],
+        categories: [],
+        filterMonth: new Date().toISOString().slice(0, 7),
+        showForm: false,
+        editingId: null,
+        receiptFile: null,
+        receiptPreviewUrl: "",
+        errorMsg: "",
+        form: defaultTransactionForm(),
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            await this.bootstrap();
+          } else {
+            document.addEventListener("app:ready", () => this.bootstrap());
+          }
+        },
+
+        async bootstrap() {
+          await this.loadCategories();
+          await this.loadTransactions();
+        },
+
+        async loadCategories() {
+          const { data, error } = await DB.listCategories(window.CURRENT_COMMUNITY_ID);
+          if (!error) this.categories = data;
+        },
+
+        categoriesForType(type) {
+          return this.categories.filter((c) => c.type === type);
+        },
+
+        async loadTransactions() {
+          this.loading = true;
+          const [year, month] = this.filterMonth.split("-").map(Number);
+          const startDate = `${this.filterMonth}-01`;
+          const lastDay = new Date(year, month, 0).getDate();
+          const endDate = `${this.filterMonth}-${String(lastDay).padStart(2, "0")}`;
+
+          const { data, error } = await DB.listTransactions({
+            communityId: window.CURRENT_COMMUNITY_ID,
+            startDate,
+            endDate,
+          });
+          if (!error) this.transactions = data;
+          this.loading = false;
+        },
+
+        openAddForm(type) {
+          this.editingId = null;
+          this.receiptFile = null;
+          this.receiptPreviewUrl = "";
+          this.errorMsg = "";
+          this.form = defaultTransactionForm();
+          this.form.type = type;
+          this.showForm = true;
+        },
+
+        async openEditForm(t) {
+          this.editingId = t.id;
+          this.receiptFile = null;
+          this.receiptPreviewUrl = "";
+          this.errorMsg = "";
+          this.form = {
+            type: t.type,
+            category_id: t.category_id || "",
+            amount: t.amount,
+            note: t.note || "",
+            transaction_date: t.transaction_date,
+            receipt_path: t.receipt_path || "",
+          };
+          this.showForm = true;
+
+          if (t.receipt_path) {
+            const { data } = await DB.getReceiptSignedUrl(t.receipt_path);
+            if (data) this.receiptPreviewUrl = data.signedUrl;
+          }
+        },
+
+        closeForm() {
+          this.showForm = false;
+        },
+
+        async submitForm() {
+          this.errorMsg = "";
+          const amount = parseFloat(this.form.amount);
+          if (!amount || amount <= 0) {
+            this.errorMsg = "กรุณากรอกจำนวนเงินให้ถูกต้อง";
+            return;
+          }
+          if (!this.form.category_id) {
+            this.errorMsg = "กรุณาเลือกหมวดหมู่";
+            return;
+          }
+
+          this.saving = true;
+          const payload = {
+            type: this.form.type,
+            category_id: this.form.category_id,
+            amount,
+            note: this.form.note || null,
+            transaction_date: this.form.transaction_date,
+          };
+
+          let result;
+          if (this.editingId) {
+            result = await DB.updateTransaction(this.editingId, payload);
+          } else {
+            result = await DB.createTransaction(payload);
+          }
+
+          if (result.error) {
+            this.saving = false;
+            this.errorMsg = "บันทึกไม่สำเร็จ: " + result.error.message;
+            return;
+          }
+
+          const transactionId = result.data.id;
+
+          if (this.receiptFile) {
+            const upload = await DB.uploadReceipt(this.receiptFile, transactionId);
+            if (!upload.error) {
+              await DB.updateTransaction(transactionId, {
+                receipt_path: upload.data.path,
+              });
+            }
+          }
+
+          this.saving = false;
+          this.showForm = false;
+          await this.loadTransactions();
+        },
+
+        onReceiptFileChange(event) {
+          const file = event.target.files[0];
+          this.receiptFile = file;
+          if (file) this.receiptPreviewUrl = URL.createObjectURL(file);
+        },
+
+        async handleDelete() {
+          if (!confirm("ยืนยันลบรายการนี้?")) return;
+          this.saving = true;
+          const { error } = await DB.deleteTransaction(this.editingId);
+          this.saving = false;
+          if (error) {
+            this.errorMsg = "ลบไม่สำเร็จ: " + error.message;
+            return;
+          }
+          this.showForm = false;
+          await this.loadTransactions();
+        },
+
+        formatCurrency(n) {
+          return AppUtils.formatCurrency(n);
+        },
+        formatDate(d) {
+          return AppUtils.formatDate(d);
+        },
+      };
+    }
+
+    function defaultTransactionForm() {
+      return {
+        type: "expense",
+        category_id: "",
+        amount: "",
+        note: "",
+        transaction_date: new Date().toISOString().slice(0, 10),
+        receipt_path: "",
+      };
+    }
+  </script>
+</body>
+</html>

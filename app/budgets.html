@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>งบประมาณ - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html" class="active">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="budgetsPage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>งบประมาณ</h2>
+        <input type="month" x-model="filterMonth" @change="loadData()" style="padding:8px; border:1px solid var(--color-border); border-radius:8px;" />
+      </div>
+
+      <div class="alert-banner" x-show="!loading && overBudgetList.length > 0">
+        🔔 มี <span x-text="overBudgetList.length"></span> หมวดหมู่ที่ใช้เกินงบประมาณเดือนนี้:
+        <span x-text="overBudgetList.map(c => c.name).join(', ')"></span>
+      </div>
+
+      <p class="text-muted" x-show="!isAdmin" style="font-size:0.85rem;">
+        คุณเป็นสมาชิกทั่วไป ดูงบประมาณได้อย่างเดียว — ให้ admin ของชุมชนเป็นผู้กำหนดวงเงิน
+      </p>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <div class="card" x-show="!loading && expenseCategories.length === 0">
+        <div class="empty-state">ยังไม่มีหมวดหมู่รายจ่าย ไปเพิ่มที่หน้า "หมวดหมู่" ก่อน</div>
+      </div>
+
+      <template x-for="c in expenseCategories" :key="c.id">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span x-text="c.icon + ' ' + c.name" style="font-weight:600;"></span>
+            <span
+              class="badge badge-over"
+              x-show="getLimit(c.id) > 0 && getSpent(c.id) >= getLimit(c.id)"
+            >เกินงบ</span>
+          </div>
+
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              :class="progressClass(c.id)"
+              :style="'width:' + progressPercent(c.id) + '%'"
+            ></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:0.85rem;" class="text-muted">
+            <span x-text="'ใช้ไป ' + formatCurrency(getSpent(c.id))"></span>
+            <span x-text="getLimit(c.id) > 0 ? 'วงเงิน ' + formatCurrency(getLimit(c.id)) : 'ยังไม่กำหนดวงเงิน'"></span>
+          </div>
+
+          <div x-show="isAdmin" style="display:flex; gap:8px; margin-top:10px;">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              x-model="limitInputs[c.id]"
+              placeholder="กำหนดวงเงิน (บาท)"
+              style="flex:1; padding:8px; border:1px solid var(--color-border); border-radius:8px;"
+            />
+            <button class="btn btn-primary" @click="saveLimit(c.id)" :disabled="savingId === c.id">
+              <span x-text="savingId === c.id ? '...' : 'บันทึก'"></span>
+            </button>
+            <button
+              x-show="getLimit(c.id) > 0"
+              class="btn btn-danger"
+              @click="deleteLimit(c.id)"
+              :disabled="savingId === c.id"
+            >ลบ</button>
+          </div>
+        </div>
+      </template>
+
+      <button class="fab" @click="openAddForm('expense')">+</button>
+
+      <!-- Modal ฟอร์มบันทึกรายรับ-รายจ่ายด่วน -->
+      <div class="modal-overlay" x-show="showForm" x-cloak @click.self="closeForm()">
+        <div class="modal-card">
+          <h3>เพิ่มรายการ</h3>
+
+          <div class="segmented">
+            <button :class="form.type === 'income' ? 'active-income' : ''" @click="form.type = 'income'; form.category_id = ''">รายรับ</button>
+            <button :class="form.type === 'expense' ? 'active-expense' : ''" @click="form.type = 'expense'; form.category_id = ''">รายจ่าย</button>
+          </div>
+
+          <div class="form-group">
+            <label>จำนวนเงิน (บาท)</label>
+            <input type="number" step="0.01" min="0.01" x-model="form.amount" placeholder="0.00" />
+          </div>
+
+          <div class="form-group">
+            <label>หมวดหมู่</label>
+            <select x-model="form.category_id">
+              <option value="">-- เลือกหมวดหมู่ --</option>
+              <template x-for="c in categoriesForType(form.type)" :key="c.id">
+                <option :value="c.id" x-text="c.icon + ' ' + c.name"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>วันที่</label>
+            <input type="date" x-model="form.transaction_date" />
+          </div>
+
+          <div class="form-group">
+            <label>บันทึกเพิ่มเติม (ไม่บังคับ)</label>
+            <textarea x-model="form.note" rows="2" placeholder="รายละเอียด"></textarea>
+          </div>
+
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="closeForm()">ยกเลิก</button>
+            <button class="btn btn-primary" style="flex:1;" :disabled="saving" @click="submitForm()">
+              <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html" class="active">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function budgetsPage() {
+      return {
+        loading: true,
+        isAdmin: false,
+        filterMonth: new Date().toISOString().slice(0, 7),
+        categories: [],
+        budgets: [],
+        spentByCategory: {},
+        limitInputs: {},
+        savingId: null,
+        showForm: false,
+        saving: false,
+        errorMsg: "",
+        form: defaultTransactionForm(),
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            this.isAdmin = window.IS_ADMIN;
+            await this.loadData();
+          } else {
+            document.addEventListener("app:ready", (e) => {
+              this.isAdmin = e.detail.role === "admin";
+              this.loadData();
+            });
+          }
+        },
+
+        get expenseCategories() {
+          return this.categories.filter((c) => c.type === "expense");
+        },
+
+        get overBudgetList() {
+          return this.expenseCategories.filter((c) => {
+            const limit = this.getLimit(c.id);
+            return limit > 0 && this.getSpent(c.id) >= limit;
+          });
+        },
+
+        async loadData() {
+          this.loading = true;
+          const [year, month] = this.filterMonth.split("-").map(Number);
+          const startDate = `${this.filterMonth}-01`;
+          const lastDay = new Date(year, month, 0).getDate();
+          const endDate = `${this.filterMonth}-${String(lastDay).padStart(2, "0")}`;
+
+          const [catRes, budgetRes, txRes] = await Promise.all([
+            DB.listCategories(window.CURRENT_COMMUNITY_ID),
+            DB.listBudgets(window.CURRENT_COMMUNITY_ID, year, month),
+            DB.listTransactions({
+              communityId: window.CURRENT_COMMUNITY_ID,
+              startDate,
+              endDate,
+              type: "expense",
+            }),
+          ]);
+
+          this.categories = catRes.data || [];
+          this.budgets = budgetRes.data || [];
+
+          this.limitInputs = {};
+          this.budgets.forEach((b) => {
+            this.limitInputs[b.category_id] = b.amount_limit;
+          });
+
+          this.spentByCategory = {};
+          (txRes.data || []).forEach((t) => {
+            if (!t.category_id) return;
+            this.spentByCategory[t.category_id] =
+              (this.spentByCategory[t.category_id] || 0) + Number(t.amount);
+          });
+
+          this.loading = false;
+        },
+
+        getLimit(categoryId) {
+          const b = this.budgets.find((b) => b.category_id === categoryId);
+          return b ? Number(b.amount_limit) : 0;
+        },
+
+        getSpent(categoryId) {
+          return this.spentByCategory[categoryId] || 0;
+        },
+
+        progressPercent(categoryId) {
+          const limit = this.getLimit(categoryId);
+          if (!limit) return 0;
+          return Math.min(100, (this.getSpent(categoryId) / limit) * 100);
+        },
+
+        progressClass(categoryId) {
+          const pct = this.progressPercent(categoryId);
+          if (pct >= 100) return "progress-over";
+          if (pct >= 70) return "progress-warn";
+          return "progress-ok";
+        },
+
+        async saveLimit(categoryId) {
+          const amount = parseFloat(this.limitInputs[categoryId]);
+          if (!amount || amount <= 0) {
+            alert("กรุณากรอกวงเงินให้ถูกต้อง");
+            return;
+          }
+          this.savingId = categoryId;
+          const [year, month] = this.filterMonth.split("-").map(Number);
+          const { error } = await DB.upsertBudget({
+            category_id: categoryId,
+            year,
+            month,
+            amount_limit: amount,
+          });
+          this.savingId = null;
+          if (error) {
+            alert("บันทึกไม่สำเร็จ: " + error.message);
+            return;
+          }
+          await this.loadData();
+        },
+
+        async deleteLimit(categoryId) {
+          const budget = this.budgets.find((b) => b.category_id === categoryId);
+          if (!budget) return;
+          if (!confirm("ยืนยันลบวงเงินนี้?")) return;
+          this.savingId = categoryId;
+          const { error } = await DB.deleteBudget(budget.id);
+          this.savingId = null;
+          if (error) {
+            alert("ลบไม่สำเร็จ: " + error.message);
+            return;
+          }
+          await this.loadData();
+        },
+
+        formatCurrency(n) {
+          return AppUtils.formatCurrency(n);
+        },
+
+        categoriesForType(type) {
+          return this.categories.filter((c) => c.type === type);
+        },
+
+        openAddForm(type) {
+          this.errorMsg = "";
+          this.form = defaultTransactionForm();
+          this.form.type = type;
+          this.showForm = true;
+        },
+
+        closeForm() {
+          this.showForm = false;
+        },
+
+        async submitForm() {
+          this.errorMsg = "";
+          const amount = parseFloat(this.form.amount);
+          if (!amount || amount <= 0) {
+            this.errorMsg = "กรุณากรอกจำนวนเงินให้ถูกต้อง";
+            return;
+          }
+          if (!this.form.category_id) {
+            this.errorMsg = "กรุณาเลือกหมวดหมู่";
+            return;
+          }
+
+          this.saving = true;
+          const { error } = await DB.createTransaction({
+            type: this.form.type,
+            category_id: this.form.category_id,
+            amount,
+            note: this.form.note || null,
+            transaction_date: this.form.transaction_date,
+          });
+          this.saving = false;
+
+          if (error) {
+            this.errorMsg = "บันทึกไม่สำเร็จ: " + error.message;
+            return;
+          }
+
+          this.showForm = false;
+          await this.loadData();
+        },
+      };
+    }
+
+    function defaultTransactionForm() {
+      return {
+        type: "expense",
+        category_id: "",
+        amount: "",
+        note: "",
+        transaction_date: new Date().toISOString().slice(0, 10),
+      };
+    }
+  </script>
+</body>
+</html>

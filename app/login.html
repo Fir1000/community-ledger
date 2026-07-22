@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เข้าสู่ระบบ - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <main
+    class="main"
+    style="max-width:400px; padding-top:60px;"
+    x-data="loginPage()"
+    x-init="init()"
+  >
+    <h2 style="text-align:center;">บัญชีชุมชน</h2>
+
+    <div class="card">
+      <template x-if="mode === 'signup'">
+        <div class="form-group">
+          <label for="fullName">ชื่อ-นามสกุล</label>
+          <input type="text" id="fullName" x-model="fullName" placeholder="ชื่อของคุณ" />
+        </div>
+      </template>
+
+      <div class="form-group">
+        <label for="email">อีเมล</label>
+        <input type="email" id="email" x-model="email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="password">รหัสผ่าน</label>
+        <input type="password" id="password" x-model="password" placeholder="อย่างน้อย 6 ตัวอักษร" />
+      </div>
+
+      <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+      <p x-show="infoMsg" x-text="infoMsg" style="color:#2f7d5f; font-size:0.9rem;"></p>
+
+      <button
+        class="btn btn-primary btn-block"
+        :disabled="loading"
+        @click="mode === 'login' ? handleLogin() : handleSignup()"
+      >
+        <span x-text="loading ? 'กำลังดำเนินการ...' : (mode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก')"></span>
+      </button>
+
+      <p class="text-muted" style="text-align:center; margin-top:12px;">
+        <template x-if="mode === 'login'">
+          <span>ยังไม่มีบัญชี? <a href="#" @click.prevent="mode = 'signup'; errorMsg = ''; infoMsg = ''">สมัครสมาชิก</a></span>
+        </template>
+        <template x-if="mode === 'signup'">
+          <span>มีบัญชีอยู่แล้ว? <a href="#" @click.prevent="mode = 'login'; errorMsg = ''; infoMsg = ''">เข้าสู่ระบบ</a></span>
+        </template>
+      </p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function loginPage() {
+      return {
+        mode: "login",
+        email: "",
+        password: "",
+        fullName: "",
+        loading: false,
+        errorMsg: "",
+        infoMsg: "",
+
+        async init() {
+          // ถ้าล็อกอินอยู่แล้วให้ข้ามไปหน้าแอปเลย
+          const {
+            data: { session },
+          } = await window.sb.auth.getSession();
+          if (session) {
+            window.location.href = "/app/dashboard.html";
+          }
+        },
+
+        async handleLogin() {
+          this.errorMsg = "";
+          this.infoMsg = "";
+          if (!this.email || !this.password) {
+            this.errorMsg = "กรุณากรอกอีเมลและรหัสผ่าน";
+            return;
+          }
+          this.loading = true;
+          const { error } = await Auth.signIn(this.email, this.password);
+          this.loading = false;
+          if (error) {
+            this.errorMsg = "เข้าสู่ระบบไม่สำเร็จ: " + error.message;
+            return;
+          }
+          window.location.href = "/app/dashboard.html";
+        },
+
+        async handleSignup() {
+          this.errorMsg = "";
+          this.infoMsg = "";
+          if (!this.fullName || !this.email || !this.password) {
+            this.errorMsg = "กรุณากรอกข้อมูลให้ครบ";
+            return;
+          }
+          if (this.password.length < 6) {
+            this.errorMsg = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+            return;
+          }
+          this.loading = true;
+          const { data, error } = await Auth.signUp(
+            this.email,
+            this.password,
+            this.fullName
+          );
+          this.loading = false;
+          if (error) {
+            this.errorMsg = "สมัครสมาชิกไม่สำเร็จ: " + error.message;
+            return;
+          }
+          if (data.session) {
+            window.location.href = "/app/onboarding.html";
+            return;
+          }
+          this.infoMsg = "สมัครสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตนก่อนเข้าสู่ระบบ";
+          this.mode = "login";
+        },
+      };
+    }
+  </script>
+</body>
+</html>

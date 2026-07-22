@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ทดสอบเชื่อมต่อ Supabase</title>
+</head>
+<body style="font-family: sans-serif; padding: 24px;">
+  <h2>ทดสอบการเชื่อมต่อ Supabase</h2>
+  <pre id="result">กำลังเชื่อมต่อ...</pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script>
+    (async () => {
+      const el = document.getElementById("result");
+      try {
+        const { data, error } = await window.sb.auth.getSession();
+        if (error) throw error;
+        el.textContent =
+          "เชื่อมต่อสำเร็จ ✅\nProject URL: " +
+          window.SUPABASE_CONFIG.url +
+          "\nSession: " +
+          (data.session ? "มี session" : "ยังไม่ล็อกอิน (ปกติ)");
+      } catch (err) {
+        el.textContent = "เชื่อมต่อไม่สำเร็จ ❌\n" + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>

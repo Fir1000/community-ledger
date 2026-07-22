@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>สมาชิก - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html" class="active">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="membersPage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <h2>สมาชิกชุมชน</h2>
+
+      <div class="card">
+        <p class="text-muted" style="margin-top:0;">ชื่อชุมชน</p>
+        <div style="display:flex; gap:8px;">
+          <input
+            type="text"
+            x-model="communityName"
+            :readonly="!isAdmin"
+            style="flex:1; padding:10px; border:1px solid var(--color-border); border-radius:8px;"
+          />
+          <button
+            x-show="isAdmin"
+            class="btn btn-primary"
+            @click="saveCommunityName()"
+            :disabled="savingName"
+          >
+            <span x-text="savingName ? '...' : 'บันทึก'"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted" style="margin-top:0;">รหัสเชิญสมาชิกใหม่</p>
+        <div style="display:flex; gap:8px;">
+          <input type="text" :value="inviteCode" readonly style="flex:1; padding:10px; border:1px solid var(--color-border); border-radius:8px; font-family:monospace; font-size:1.1rem;" />
+          <button class="btn btn-primary" @click="copyInviteCode()" x-text="copyLabel"></button>
+        </div>
+        <p class="text-muted" style="font-size:0.85rem;">ส่งรหัสนี้ให้คนที่ต้องการชวนเข้าชุมชน แล้วให้เขาไปกด "เข้าร่วมด้วยรหัส" ตอนสมัคร/ล็อกอิน</p>
+        <button x-show="isAdmin" class="btn" style="border:1px solid var(--color-border); font-size:0.85rem;" @click="regenerateCode()">
+          🔄 สร้างรหัสใหม่ (รหัสเดิมจะใช้ไม่ได้อีก)
+        </button>
+      </div>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <div class="card" x-show="!loading">
+        <template x-for="m in members" :key="m.id">
+          <div class="transaction-row">
+            <div>
+              <span x-text="m.profiles ? m.profiles.full_name : 'ไม่ทราบชื่อ'"></span>
+              <span x-show="m.user_id === currentUserId" class="text-muted" style="font-size:0.8rem;">(คุณ)</span>
+              <div class="text-muted" style="font-size:0.8rem;" x-text="m.role === 'admin' ? 'ผู้ดูแล' : 'สมาชิก'"></div>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center;">
+              <template x-if="isAdmin && m.user_id !== currentUserId">
+                <select @change="changeRole(m, $event.target.value)" style="padding:6px; border:1px solid var(--color-border); border-radius:6px;">
+                  <option value="member" :selected="m.role === 'member'">สมาชิก</option>
+                  <option value="admin" :selected="m.role === 'admin'">ผู้ดูแล</option>
+                </select>
+              </template>
+
+              <button
+                x-show="isAdmin && m.user_id !== currentUserId"
+                class="btn btn-danger"
+                style="padding:6px 12px; font-size:0.85rem;"
+                @click="removeMember(m)"
+              >ลบ</button>
+
+              <button
+                x-show="m.user_id === currentUserId"
+                class="btn"
+                style="padding:6px 12px; font-size:0.85rem; border:1px solid var(--color-danger); color:var(--color-danger);"
+                @click="leaveGroup(m)"
+              >ออกจากชุมชน</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html" class="active">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function membersPage() {
+      return {
+        loading: true,
+        isAdmin: false,
+        currentUserId: null,
+        inviteCode: "",
+        copyLabel: "คัดลอก",
+        communityName: "",
+        savingName: false,
+        members: [],
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            this.isAdmin = window.IS_ADMIN;
+            this.currentUserId = window.CURRENT_USER.id;
+            this.inviteCode = window.CURRENT_COMMUNITY?.invite_code || "";
+            this.communityName = window.CURRENT_COMMUNITY?.name || "";
+            await this.loadMembers();
+          } else {
+            document.addEventListener("app:ready", (e) => {
+              this.isAdmin = e.detail.role === "admin";
+              this.currentUserId = e.detail.user.id;
+              this.inviteCode = e.detail.community?.invite_code || "";
+              this.communityName = e.detail.community?.name || "";
+              this.loadMembers();
+            });
+          }
+        },
+
+        async loadMembers() {
+          this.loading = true;
+          const { data, error } = await DB.listMembers(window.CURRENT_COMMUNITY_ID);
+          if (!error) this.members = data;
+          this.loading = false;
+        },
+
+        get adminCount() {
+          return this.members.filter((m) => m.role === "admin").length;
+        },
+
+        async copyInviteCode() {
+          try {
+            await navigator.clipboard.writeText(this.inviteCode);
+            this.copyLabel = "คัดลอกแล้ว ✓";
+          } catch {
+            this.copyLabel = "คัดลอกไม่สำเร็จ";
+          }
+          setTimeout(() => (this.copyLabel = "คัดลอก"), 2000);
+        },
+
+        async saveCommunityName() {
+          const name = this.communityName.trim();
+          if (!name) {
+            alert("กรุณากรอกชื่อชุมชน");
+            return;
+          }
+          this.savingName = true;
+          const { error } = await Community.rename(window.CURRENT_COMMUNITY_ID, name);
+          this.savingName = false;
+          if (error) {
+            alert("บันทึกไม่สำเร็จ: " + error.message);
+            return;
+          }
+          this.communityName = name;
+          document.querySelectorAll("[data-community-name]").forEach((el) => {
+            el.textContent = name;
+          });
+        },
+
+        async regenerateCode() {
+          if (!confirm("สร้างรหัสเชิญใหม่? รหัสเดิมจะใช้ไม่ได้อีก")) return;
+          const { data, error } = await Community.regenerateInviteCode(
+            window.CURRENT_COMMUNITY_ID
+          );
+          if (error) {
+            alert("ทำรายการไม่สำเร็จ: " + error.message);
+            return;
+          }
+          this.inviteCode = data.invite_code;
+        },
+
+        async changeRole(member, newRole) {
+          if (member.role === "admin" && newRole === "member" && this.adminCount <= 1) {
+            alert("ไม่สามารถลดสิทธิ์ได้ เพราะเป็นผู้ดูแลคนสุดท้ายของชุมชน");
+            await this.loadMembers();
+            return;
+          }
+          const { error } = await DB.updateMemberRole(member.id, newRole);
+          if (error) {
+            alert("ทำรายการไม่สำเร็จ: " + error.message);
+          }
+          await this.loadMembers();
+        },
+
+        async removeMember(member) {
+          if (!confirm(`ลบ "${member.profiles?.full_name}" ออกจากชุมชน?`)) return;
+          const { error } = await DB.removeMember(member.id);
+          if (error) {
+            alert("ทำรายการไม่สำเร็จ: " + error.message);
+            return;
+          }
+          await this.loadMembers();
+        },
+
+        async leaveGroup(member) {
+          if (member.role === "admin" && this.adminCount <= 1) {
+            alert("คุณเป็นผู้ดูแลคนสุดท้าย กรุณาตั้งสมาชิกคนอื่นเป็นผู้ดูแลก่อนออกจากชุมชน");
+            return;
+          }
+          if (!confirm("ยืนยันออกจากชุมชนนี้?")) return;
+          const { error } = await DB.removeMember(member.id);
+          if (error) {
+            alert("ทำรายการไม่สำเร็จ: " + error.message);
+            return;
+          }
+          localStorage.removeItem("current_community_id");
+          window.location.href = "/app/onboarding.html";
+        },
+      };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>รายงาน - บัญชีชุมชน</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar no-print">
+      <div class="brand">บัญชีชุมชน</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html" class="active">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+    </aside>
+
+    <main class="main" x-data="reportsPage()" x-init="init()">
+      <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <h2>รายงาน</h2>
+
+      <div class="card no-print">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>จากวันที่</label>
+            <input type="date" x-model="filters.startDate" />
+          </div>
+          <div class="form-group">
+            <label>ถึงวันที่</label>
+            <input type="date" x-model="filters.endDate" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>หมวดหมู่</label>
+          <select x-model="filters.categoryId">
+            <option value="">ทั้งหมด</option>
+            <template x-for="c in categories" :key="c.id">
+              <option :value="c.id" x-text="c.icon + ' ' + c.name"></option>
+            </template>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>ประเภท</label>
+            <select x-model="filters.type">
+              <option value="">ทั้งหมด</option>
+              <option value="income">รายรับ</option>
+              <option value="expense">รายจ่าย</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ค้นหาในบันทึก</label>
+            <input type="text" x-model="filters.search" placeholder="เช่น ค่าอาหาร" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" @click="search()">ค้นหา</button>
+      </div>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <template x-if="!loading">
+        <div>
+          <div class="card" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; text-align:center;">
+            <div>
+              <p class="text-muted" style="margin:0; font-size:0.85rem;">รายรับ</p>
+              <p class="amount-income" style="font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalIncome)"></p>
+            </div>
+            <div>
+              <p class="text-muted" style="margin:0; font-size:0.85rem;">รายจ่าย</p>
+              <p class="amount-expense" style="font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalExpense)"></p>
+            </div>
+            <div>
+              <p class="text-muted" style="margin:0; font-size:0.85rem;">สุทธิ</p>
+              <p style="font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalIncome - totalExpense)"></p>
+            </div>
+          </div>
+
+          <div class="card" x-show="categoryBreakdown.some(c => c.type === 'income')">
+            <p class="text-muted" style="margin-top:0;">สรุปรายรับตามหมวดหมู่</p>
+            <template x-for="c in categoryBreakdown.filter(c => c.type === 'income')" :key="c.name">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
+                <span x-text="c.icon + ' ' + c.name"></span>
+                <span class="amount-income" x-text="'+' + formatCurrency(c.total)"></span>
+              </div>
+            </template>
+          </div>
+
+          <div class="card" x-show="categoryBreakdown.some(c => c.type === 'expense')">
+            <p class="text-muted" style="margin-top:0;">สรุปรายจ่ายตามหมวดหมู่</p>
+            <template x-for="c in categoryBreakdown.filter(c => c.type === 'expense')" :key="c.name">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
+                <span x-text="c.icon + ' ' + c.name"></span>
+                <span class="amount-expense" x-text="'-' + formatCurrency(c.total)"></span>
+              </div>
+            </template>
+          </div>
+
+          <div class="card no-print" x-show="results.length > 0">
+            <div style="display:flex; gap:8px;">
+              <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="exportCSV()">⬇ Export CSV</button>
+              <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="exportPDF()">🖨 พิมพ์ / บันทึกเป็น PDF</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="empty-state" x-show="results.length === 0">ไม่พบรายการตามเงื่อนไขที่เลือก</div>
+            <div style="overflow-x:auto;" x-show="results.length > 0">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>วันที่</th>
+                    <th>หมวดหมู่</th>
+                    <th>บันทึก</th>
+                    <th style="text-align:right;">จำนวนเงิน</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="t in results" :key="t.id">
+                    <tr>
+                      <td x-text="formatDate(t.transaction_date)"></td>
+                      <td x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่')"></td>
+                      <td x-text="t.note || '-'"></td>
+                      <td
+                        style="text-align:right;"
+                        :class="t.type === 'income' ? 'amount-income' : 'amount-expense'"
+                        x-text="(t.type === 'income' ? '+' : '-') + formatCurrency(t.amount)"
+                      ></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+    </main>
+  </div>
+
+  <nav class="bottom-nav no-print">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html" class="active">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function reportsPage() {
+      return {
+        loading: true,
+        categories: [],
+        results: [],
+        totalIncome: 0,
+        totalExpense: 0,
+        filters: {
+          startDate: `${new Date().toISOString().slice(0, 7)}-01`,
+          endDate: new Date().toISOString().slice(0, 10),
+          categoryId: "",
+          type: "",
+          search: "",
+        },
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            await this.bootstrap();
+          } else {
+            document.addEventListener("app:ready", () => this.bootstrap());
+          }
+        },
+
+        async bootstrap() {
+          const { data } = await DB.listCategories(window.CURRENT_COMMUNITY_ID);
+          this.categories = data || [];
+          await this.search();
+        },
+
+        async search() {
+          this.loading = true;
+          const { data, error } = await DB.listTransactions({
+            communityId: window.CURRENT_COMMUNITY_ID,
+            startDate: this.filters.startDate,
+            endDate: this.filters.endDate,
+            categoryId: this.filters.categoryId || undefined,
+            type: this.filters.type || undefined,
+            search: this.filters.search || undefined,
+          });
+
+          if (!error) {
+            this.results = data;
+            this.totalIncome = data
+              .filter((t) => t.type === "income")
+              .reduce((sum, t) => sum + Number(t.amount), 0);
+            this.totalExpense = data
+              .filter((t) => t.type === "expense")
+              .reduce((sum, t) => sum + Number(t.amount), 0);
+          }
+          this.loading = false;
+        },
+
+        get categoryBreakdown() {
+          const map = {};
+          this.results.forEach((t) => {
+            const key = t.category_id || "none";
+            if (!map[key]) {
+              map[key] = {
+                name: t.categories ? t.categories.name : "ไม่ระบุหมวดหมู่",
+                icon: t.categories ? t.categories.icon : "📦",
+                type: t.type,
+                total: 0,
+              };
+            }
+            map[key].total += Number(t.amount);
+          });
+          return Object.values(map).sort((a, b) => b.total - a.total);
+        },
+
+        exportCSV() {
+          const header = ["วันที่", "ประเภท", "หมวดหมู่", "จำนวนเงิน", "บันทึก"];
+          const rows = this.results.map((t) => [
+            t.transaction_date,
+            t.type === "income" ? "รายรับ" : "รายจ่าย",
+            t.categories ? t.categories.name : "ไม่ระบุหมวดหมู่",
+            t.amount,
+            t.note || "",
+          ]);
+          const csvLines = [header, ...rows].map((row) =>
+            row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
+          );
+          // ใส่ BOM นำหน้าเพื่อให้ Excel เปิดภาษาไทยถูกต้อง
+          const csvContent = "﻿" + csvLines.join("\r\n");
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `รายงาน-${this.filters.startDate}-ถึง-${this.filters.endDate}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        },
+
+        exportPDF() {
+          window.print();
+        },
+
+        formatCurrency(n) {
+          return AppUtils.formatCurrency(n);
+        },
+        formatDate(d) {
+          return AppUtils.formatDate(d);
+        },
+      };
+    }
+  </script>
+</body>
+</html>
