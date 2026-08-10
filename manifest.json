@@ -1,6 +1,6 @@
 {
-  "name": "บัญชี - บันทึกรายรับรายจ่าย",
-  "short_name": "บัญชี",
+  "name": "Daily Fir",
+  "short_name": "Daily Fir",
   "description": "เว็บแอปบันทึกรายรับ-รายจ่ายสำหรับชุมชน",
   "start_url": "/app/dashboard.html",
   "scope": "/",
