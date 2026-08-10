@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>สรุปยอด - บัญชีชุมชน</title>
+  <title>สรุปยอด - บัญชี</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
@@ -14,13 +14,14 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">บัญชีชุมชน</div>
+      <div class="brand">บัญชี</div>
       <a href="/app/dashboard.html" class="active">สรุปยอด</a>
       <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
       <a href="/app/categories.html">หมวดหมู่</a>
       <a href="/app/budgets.html">งบประมาณ</a>
       <a href="/app/reports.html">รายงาน</a>
       <a href="/app/members.html">สมาชิก</a>
+      <a href="/app/profile.html">เกี่ยวกับตัวเอง 👤</a>
     </aside>
 
     <main class="main" x-data="dashboardPage()" x-init="init()">
@@ -28,7 +29,7 @@
         <span data-community-name style="font-weight:600;"></span>
         <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
       </div>
-      <h2>สรุปยอด — เดือนนี้</h2>
+      <h2>สรุปยอด</h2>
 
       <div class="alert-banner" x-show="!loading && overBudgetCategories.length > 0">
         🔔 มี <span x-text="overBudgetCategories.length"></span> หมวดหมู่ที่ใช้เกินงบประมาณเดือนนี้:
@@ -36,6 +37,26 @@
         — <a href="/app/budgets.html" style="color:inherit; text-decoration:underline;">ดูรายละเอียด</a>
       </div>
 
+      <div class="card" style="text-align:center;">
+        <p class="text-muted" style="margin:0; font-size:0.85rem;">ยอดเงินคงเหลือทั้งหมด</p>
+        <p style="font-size:1.1rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(startingBalance + previousBalance + balance)"></p>
+        <p class="text-muted" style="margin:2px 0 0; font-size:0.75rem;" x-show="startingBalance !== 0">
+          (รวมยอดเริ่มต้นจากหน้า "เกี่ยวกับตัวเอง" <span x-text="formatCurrency(startingBalance)"></span>)
+        </p>
+
+        <div style="display:flex; justify-content:space-around; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-border);">
+          <div>
+            <p class="text-muted" style="margin:0; font-size:0.8rem;">💵 เงินสดคงเหลือ</p>
+            <p style="font-weight:700; margin:2px 0 0;" x-text="formatCurrency(cashRemaining)"></p>
+          </div>
+          <div>
+            <p class="text-muted" style="margin:0; font-size:0.8rem;">🏦 เงินโอนคงเหลือ</p>
+            <p style="font-weight:700; margin:2px 0 0;" x-text="formatCurrency(transferRemaining)"></p>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-muted" style="font-weight:600; margin-bottom:8px;">สรุปเดือนนี้</p>
       <div class="card" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; text-align:center;">
         <div>
           <p class="text-muted" style="margin:0; font-size:0.85rem;">รายรับ</p>
@@ -49,6 +70,44 @@
           <p class="text-muted" style="margin:0; font-size:0.85rem;">คงเหลือ</p>
           <p style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(balance)"></p>
         </div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted" style="font-weight:600;">แนวโน้มรายรับ-รายจ่าย</p>
+
+        <div class="chip-row">
+          <button class="chip" :class="trendRange === '1d' ? 'active' : ''" @click="setTrendRange('1d')">1 วัน</button>
+          <button class="chip" :class="trendRange === '1m' ? 'active' : ''" @click="setTrendRange('1m')">1 เดือน</button>
+          <button class="chip" :class="trendRange === '1y' ? 'active' : ''" @click="setTrendRange('1y')">1 ปี</button>
+        </div>
+
+        <div x-show="!trendLoading && trendIncomeMoM !== null" style="display:flex; gap:16px; margin-bottom:10px; font-size:0.85rem;">
+          <span class="text-muted">
+            รายรับเทียบเดือนก่อน
+            <strong :class="trendIncomeMoM >= 0 ? 'amount-income' : 'amount-expense'" x-text="(trendIncomeMoM >= 0 ? '+' : '') + trendIncomeMoM.toFixed(1) + '%'"></strong>
+          </span>
+          <span class="text-muted">
+            รายจ่ายเทียบเดือนก่อน
+            <strong :class="trendExpenseMoM <= 0 ? 'amount-income' : 'amount-expense'" x-text="(trendExpenseMoM >= 0 ? '+' : '') + trendExpenseMoM.toFixed(1) + '%'"></strong>
+          </span>
+        </div>
+
+        <div x-show="trendLoading" class="empty-state">กำลังโหลด...</div>
+        <div style="position:relative; height:320px;" x-show="!trendLoading && trendHasData">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="empty-state" x-show="!trendLoading && !trendHasData">ยังไม่มีข้อมูล</div>
+      </div>
+
+      <div class="card">
+        <p class="text-muted" style="font-weight:600;">กราฟ X-Ray (แต่ละรายการที่บันทึก)</p>
+        <p class="text-muted" style="font-size:0.8rem; margin-top:-6px;">แต่ละจุด = 1 รายการที่บันทึกไว้ตามจำนวนเงินจริง เส้นสีเขียวขึ้น = รายรับ, เส้นสีแดงลง = รายจ่าย (เทียบกับเส้น 0 ตรงกลาง)</p>
+
+        <div x-show="trendLoading" class="empty-state">กำลังโหลด...</div>
+        <div style="position:relative; height:280px;" x-show="!trendLoading && trendHasData">
+          <canvas id="xrayChart"></canvas>
+        </div>
+        <div class="empty-state" x-show="!trendLoading && !trendHasData">ยังไม่มีข้อมูล</div>
       </div>
 
       <div class="card">
@@ -121,6 +180,7 @@
     <a href="/app/budgets.html">งบประมาณ</a>
     <a href="/app/reports.html">รายงาน</a>
     <a href="/app/members.html">สมาชิก</a>
+    <a href="/app/profile.html">ตัวเอง</a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -141,19 +201,66 @@
         totalIncome: 0,
         totalExpense: 0,
         balance: 0,
+        previousBalance: 0,
+        startingBalance: 0,
+        startingCash: 0,
+        startingTransfer: 0,
+        cashNet: 0,
+        transferNet: 0,
         recentTransactions: [],
         categoryBreakdown: [],
         overBudgetCategories: [],
         incomeExpenseChartInstance: null,
         incomeCategoryChartInstance: null,
         expenseCategoryChartInstance: null,
+        trendRange: "1y",
+        trendRequestId: 0,
+        trendLoading: true,
+        trendHasData: false,
+        trendChartInstance: null,
+        xrayChartInstance: null,
+        trendIncomeMoM: null,
+        trendExpenseMoM: null,
+        trendAvgIncome: null,
+        trendAvgExpense: null,
+        monthNames: ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
 
         async init() {
           if (window.CURRENT_COMMUNITY_ID) {
             await this.loadData();
+            await this.loadTrendData();
+            await this.loadStartingBalance();
           } else {
-            document.addEventListener("app:ready", () => this.loadData());
+            document.addEventListener("app:ready", () => {
+              this.loadData();
+              this.loadTrendData();
+              this.loadStartingBalance();
+            });
           }
+        },
+
+        async loadStartingBalance() {
+          const { data, error } = await DB.getMyFinanceProfile();
+          if (error || !data) return;
+          const otherItems = data.other_items || [];
+          const otherCash = otherItems
+            .filter((i) => i.payment_method !== "transfer")
+            .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+          const otherTransfer = otherItems
+            .filter((i) => i.payment_method === "transfer")
+            .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+
+          this.startingCash = Number(data.cash_amount) + otherCash;
+          this.startingTransfer = Number(data.bank_amount) + Number(data.ewallet_amount) + otherTransfer;
+          this.startingBalance = this.startingCash + this.startingTransfer;
+        },
+
+        get cashRemaining() {
+          return this.startingCash + this.cashNet;
+        },
+
+        get transferRemaining() {
+          return this.startingTransfer + this.transferNet;
         },
 
         async loadData() {
@@ -165,13 +272,20 @@
           const lastDay = new Date(year, month, 0).getDate();
           const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-          const [{ data, error }, budgetRes] = await Promise.all([
+          const prevMonthEnd = new Date(year, month - 1, 0);
+          const prevEndDate = `${prevMonthEnd.getFullYear()}-${String(prevMonthEnd.getMonth() + 1).padStart(2, "0")}-${String(prevMonthEnd.getDate()).padStart(2, "0")}`;
+
+          const [{ data, error }, budgetRes, prevRes] = await Promise.all([
             DB.listTransactions({
               communityId: window.CURRENT_COMMUNITY_ID,
               startDate,
               endDate,
             }),
             DB.listBudgets(window.CURRENT_COMMUNITY_ID, year, month),
+            DB.listTransactions({
+              communityId: window.CURRENT_COMMUNITY_ID,
+              endDate: prevEndDate,
+            }),
           ]);
 
           if (error) {
@@ -188,6 +302,23 @@
             .reduce((sum, t) => sum + Number(t.amount), 0);
           this.balance = this.totalIncome - this.totalExpense;
           this.recentTransactions = data.slice(0, 5);
+
+          const prevData = prevRes.data || [];
+          const prevIncome = prevData
+            .filter((t) => t.type === "income")
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          const prevExpense = prevData
+            .filter((t) => t.type === "expense")
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          this.previousBalance = prevIncome - prevExpense;
+
+          const allTimeData = prevData.concat(data);
+          this.cashNet = allTimeData
+            .filter((t) => (t.payment_method || "cash") === "cash")
+            .reduce((sum, t) => sum + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
+          this.transferNet = allTimeData
+            .filter((t) => t.payment_method === "transfer")
+            .reduce((sum, t) => sum + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
 
           const breakdownMap = {};
           data.forEach((t) => {
@@ -315,6 +446,363 @@
             options: {
               maintainAspectRatio: false,
               plugins: { legend: { position: "bottom" } },
+            },
+          });
+        },
+
+        async setTrendRange(range) {
+          this.trendRange = range;
+          await this.loadTrendData();
+        },
+
+        toISODate(d) {
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        },
+
+        pctChange(prev, cur) {
+          if (prev > 0) return ((cur - prev) / prev) * 100;
+          return cur > 0 ? 100 : 0;
+        },
+
+        async loadTrendData() {
+          // กัน race condition: ถ้ามีการเรียกซ้ำ (เช่น สลับช่วงเวลาเร็วๆ) ให้ใช้ผลลัพธ์ของคำขอล่าสุดเท่านั้น
+          const requestId = ++this.trendRequestId;
+          this.trendLoading = true;
+
+          const now = new Date();
+          let labels = [];
+          let incomeSeries = [];
+          let expenseSeries = [];
+          let incomeMoM = null;
+          let expenseMoM = null;
+          let avgIncome = null;
+          let avgExpense = null;
+          let rawTransactions = [];
+
+          try {
+            if (this.trendRange === "1d") {
+              const today = this.toISODate(now);
+              const { data } = await DB.listTransactions({
+                communityId: window.CURRENT_COMMUNITY_ID,
+                startDate: today,
+                endDate: today,
+              });
+              rawTransactions = data || [];
+              const incomeByHour = {};
+              const expenseByHour = {};
+              (data || []).forEach((t) => {
+                const hour = new Date(t.created_at).getHours();
+                if (t.type === "income") incomeByHour[hour] = (incomeByHour[hour] || 0) + Number(t.amount);
+                else expenseByHour[hour] = (expenseByHour[hour] || 0) + Number(t.amount);
+              });
+              for (let h = 0; h < 24; h++) {
+                labels.push(`${String(h).padStart(2, "0")}:00`);
+                incomeSeries.push(incomeByHour[h] || 0);
+                expenseSeries.push(expenseByHour[h] || 0);
+              }
+            } else if (this.trendRange === "1m") {
+              const days = 30;
+              const start = new Date(now);
+              start.setDate(start.getDate() - (days - 1));
+              const startDate = this.toISODate(start);
+              const endDate = this.toISODate(now);
+
+              const { data } = await DB.listTransactions({
+                communityId: window.CURRENT_COMMUNITY_ID,
+                startDate,
+                endDate,
+              });
+              rawTransactions = data || [];
+              const incomeByDate = {};
+              const expenseByDate = {};
+              (data || []).forEach((t) => {
+                const key = t.transaction_date;
+                if (t.type === "income") incomeByDate[key] = (incomeByDate[key] || 0) + Number(t.amount);
+                else expenseByDate[key] = (expenseByDate[key] || 0) + Number(t.amount);
+              });
+              for (let i = 0; i < days; i++) {
+                const d = new Date(start);
+                d.setDate(d.getDate() + i);
+                const key = this.toISODate(d);
+                labels.push(`${d.getDate()} ${this.monthNames[d.getMonth()]}`);
+                incomeSeries.push(incomeByDate[key] || 0);
+                expenseSeries.push(expenseByDate[key] || 0);
+              }
+            } else {
+              const year = now.getFullYear();
+              const startDate = `${year}-01-01`;
+              const endDate = `${year}-12-31`;
+              const monthKeys = Array.from({ length: 12 }, (_, i) => ({ year, month: i + 1 }));
+
+              const { data } = await DB.listTransactions({
+                communityId: window.CURRENT_COMMUNITY_ID,
+                startDate,
+                endDate,
+              });
+              rawTransactions = data || [];
+              const incomeByKey = {};
+              const expenseByKey = {};
+              (data || []).forEach((t) => {
+                const key = t.transaction_date.slice(0, 7);
+                if (t.type === "income") incomeByKey[key] = (incomeByKey[key] || 0) + Number(t.amount);
+                else expenseByKey[key] = (expenseByKey[key] || 0) + Number(t.amount);
+              });
+              monthKeys.forEach(({ year, month }) => {
+                const key = `${year}-${String(month).padStart(2, "0")}`;
+                labels.push(this.monthNames[month - 1]);
+                incomeSeries.push(incomeByKey[key] || 0);
+                expenseSeries.push(expenseByKey[key] || 0);
+              });
+
+              const lastIdx = incomeSeries.length - 1;
+              if (lastIdx > 0) {
+                incomeMoM = this.pctChange(incomeSeries[lastIdx - 1], incomeSeries[lastIdx]);
+                expenseMoM = this.pctChange(expenseSeries[lastIdx - 1], expenseSeries[lastIdx]);
+              }
+
+              avgIncome = incomeSeries.reduce((a, b) => a + b, 0) / incomeSeries.length;
+              avgExpense = expenseSeries.reduce((a, b) => a + b, 0) / expenseSeries.length;
+            }
+          } catch (e) {
+            console.error(e);
+          }
+
+          // มีคำขอใหม่กว่าเริ่มไปแล้วระหว่างที่รอ ให้ทิ้งผลลัพธ์นี้ ปล่อยให้คำขอล่าสุดจัดการแทน
+          if (requestId !== this.trendRequestId) return;
+
+          this.trendIncomeMoM = incomeMoM;
+          this.trendExpenseMoM = expenseMoM;
+          this.trendAvgIncome = avgIncome;
+          this.trendAvgExpense = avgExpense;
+          this.trendHasData = incomeSeries.some((v) => v > 0) || expenseSeries.some((v) => v > 0);
+          this.trendLoading = false;
+
+          const sortedTransactions = rawTransactions
+            .slice()
+            .sort(
+              (a, b) =>
+                a.transaction_date.localeCompare(b.transaction_date) ||
+                new Date(a.created_at) - new Date(b.created_at)
+            );
+
+          this.$nextTick(() => {
+            this.renderTrendChart(labels, incomeSeries, expenseSeries);
+            this.renderXrayChart(sortedTransactions);
+          });
+        },
+
+        renderTrendChart(labels, incomeSeries, expenseSeries, retries = 20) {
+          const ctx = document.getElementById("trendChart");
+          if (!ctx) return;
+          if (typeof Chart === "undefined") {
+            // Chart.js (โหลดแบบ defer จาก CDN) อาจยังโหลดไม่เสร็จ ลองใหม่สั้นๆ ก่อนจะยอมแพ้
+            if (retries > 0) {
+              setTimeout(() => this.renderTrendChart(labels, incomeSeries, expenseSeries, retries - 1), 150);
+            }
+            return;
+          }
+          if (this.trendChartInstance) this.trendChartInstance.destroy();
+          if (!this.trendHasData) return;
+
+          const profitSeries = incomeSeries.map((v, i) => v - expenseSeries[i]);
+          const formatCurrency = this.formatCurrency;
+          const isMonthlyRange = this.trendRange === "1y";
+          const pctChange = this.pctChange;
+
+          const datasets = [
+            {
+              label: "รายรับ",
+              data: incomeSeries,
+              borderColor: "#16a34a",
+              backgroundColor: "#16a34a",
+              pointBackgroundColor: "#16a34a",
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              fill: false,
+            },
+            {
+              label: "รายจ่าย",
+              data: expenseSeries,
+              borderColor: "#c0392b",
+              backgroundColor: "#c0392b",
+              pointBackgroundColor: "#c0392b",
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              fill: false,
+            },
+          ];
+
+          if (this.trendAvgIncome !== null) {
+            datasets.push({
+              label: "ค่าเฉลี่ยรายรับ",
+              data: labels.map(() => this.trendAvgIncome),
+              borderColor: "rgba(22, 163, 74, 0.5)",
+              borderDash: [6, 4],
+              pointRadius: 0,
+              tension: 0,
+              fill: false,
+            });
+          }
+          if (this.trendAvgExpense !== null) {
+            datasets.push({
+              label: "ค่าเฉลี่ยรายจ่าย",
+              data: labels.map(() => this.trendAvgExpense),
+              borderColor: "rgba(192, 57, 43, 0.5)",
+              borderDash: [6, 4],
+              pointRadius: 0,
+              tension: 0,
+              fill: false,
+            });
+          }
+
+          this.trendChartInstance = new Chart(ctx, {
+            type: "line",
+            data: { labels, datasets },
+            options: {
+              maintainAspectRatio: false,
+              animation: { duration: 800, easing: "easeOutQuart" },
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: { position: "top", labels: { usePointStyle: true } },
+                tooltip: {
+                  callbacks: {
+                    afterBody: (items) => {
+                      const idx = items[0].dataIndex;
+                      const lines = [`กำไร: ${formatCurrency(profitSeries[idx])}`];
+                      if (isMonthlyRange && idx > 0) {
+                        lines.push(`รายรับเทียบเดือนก่อน: ${pctChange(incomeSeries[idx - 1], incomeSeries[idx]).toFixed(1)}%`);
+                        lines.push(`รายจ่ายเทียบเดือนก่อน: ${pctChange(expenseSeries[idx - 1], expenseSeries[idx]).toFixed(1)}%`);
+                      }
+                      return lines;
+                    },
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: { color: "rgba(0, 0, 0, 0.08)" },
+                },
+                x: {
+                  grid: { color: "rgba(0, 0, 0, 0.08)" },
+                  ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 10 },
+                },
+              },
+            },
+          });
+        },
+
+        renderXrayChart(transactions, retries = 20) {
+          const ctx = document.getElementById("xrayChart");
+          if (!ctx) return;
+          if (typeof Chart === "undefined") {
+            if (retries > 0) {
+              setTimeout(() => this.renderXrayChart(transactions, retries - 1), 150);
+            }
+            return;
+          }
+          if (this.xrayChartInstance) this.xrayChartInstance.destroy();
+          if (!transactions || transactions.length === 0) return;
+
+          const formatCurrency = this.formatCurrency;
+          const monthNames = this.monthNames;
+          const isDayView = this.trendRange === "1d";
+
+          // แต่ละรายการที่บันทึกไว้ = 1 จุด ตามจำนวนเงินจริงที่จด (รายรับ = ขึ้นบวก, รายจ่าย = ลงลบ) ไม่รวมยอด
+          const values = transactions.map((t) => (t.type === "income" ? Number(t.amount) : -Number(t.amount)));
+          const pointColors = values.map((v) => (v >= 0 ? "#16a34a" : "#c0392b"));
+          const maxAbs = Math.max(...values.map((v) => Math.abs(v)), 1) * 1.1;
+
+          // มุมมอง "1 วัน" ใช้แกน X แบบเวลาจริง (นาทีนับจากเที่ยงคืน) ตรึงช่วง 00:00-23:00 เสมอ
+          // ไม่งั้นถ้าใช้ label ตามลำดับรายการ ระยะห่างบนกราฟจะไม่ตรงกับเวลาจริงที่ห่างกัน
+          let labels;
+          let dataPoints;
+          if (isDayView) {
+            labels = undefined;
+            dataPoints = transactions.map((t, i) => {
+              const created = new Date(t.created_at);
+              return { x: created.getHours() * 60 + created.getMinutes(), y: values[i] };
+            });
+          } else {
+            labels = transactions.map((t) => {
+              const [, month, day] = t.transaction_date.split("-").map(Number);
+              if (this.trendRange === "1y") return monthNames[month - 1];
+              return `${day} ${monthNames[month - 1]}`;
+            });
+            dataPoints = values;
+          }
+
+          this.xrayChartInstance = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "จำนวนเงินต่อรายการ",
+                  data: dataPoints,
+                  borderColor: "#5b655f",
+                  borderWidth: 1.5,
+                  segment: {
+                    borderColor: (ctx) => (ctx.p1.parsed.y >= 0 ? "#16a34a" : "#c0392b"),
+                  },
+                  pointBackgroundColor: pointColors,
+                  pointBorderColor: pointColors,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  tension: 0,
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: (items) => {
+                      const t = transactions[items[0].dataIndex];
+                      return (t.categories ? t.categories.icon + " " + t.categories.name : "ไม่ระบุหมวดหมู่") + (t.note ? " · " + t.note : "");
+                    },
+                    label: (item) => {
+                      const v = item.parsed.y;
+                      return (v >= 0 ? "รายรับ " : "รายจ่าย ") + formatCurrency(Math.abs(v));
+                    },
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  // บังคับให้แกนสมมาตรรอบ 0 เส้น 0 จะได้อยู่กึ่งกลางกราฟพอดีเสมอ
+                  min: -maxAbs,
+                  max: maxAbs,
+                  grid: {
+                    color: (ctx) => (ctx.tick.value === 0 ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.08)"),
+                    lineWidth: (ctx) => (ctx.tick.value === 0 ? 2 : 1),
+                  },
+                  ticks: {
+                    callback: (value) => (value > 0 ? "+" : "") + value.toLocaleString("th-TH"),
+                  },
+                },
+                x: isDayView
+                  ? {
+                      type: "linear",
+                      min: 0,
+                      max: 1440,
+                      grid: { display: false },
+                      ticks: {
+                        stepSize: 120,
+                        callback: (v) => `${String(Math.floor(v / 60)).padStart(2, "0")}:00`,
+                      },
+                    }
+                  : {
+                      grid: { display: false },
+                      ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 10 },
+                    },
+              },
             },
           });
         },

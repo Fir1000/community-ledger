@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เกี่ยวกับตัวเอง - บัญชี</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+  <meta name="theme-color" content="#2f7d5f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">บัญชี</div>
+      <a href="/app/dashboard.html">สรุปยอด</a>
+      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
+      <a href="/app/categories.html">หมวดหมู่</a>
+      <a href="/app/budgets.html">งบประมาณ</a>
+      <a href="/app/reports.html">รายงาน</a>
+      <a href="/app/members.html">สมาชิก</a>
+      <a href="/app/profile.html" class="active">เกี่ยวกับตัวเอง 👤</a>
+    </aside>
+
+    <main class="main" x-data="profilePage()" x-init="init()">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span data-community-name style="font-weight:600;"></span>
+        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      </div>
+
+      <h2>เกี่ยวกับตัวเอง 👤</h2>
+      <p class="text-muted" style="margin-top:-8px;">ข้อมูลการเงินเริ่มต้นของฉัน (ส่วนตัว ไม่แชร์ให้สมาชิกคนอื่นเห็น)</p>
+
+      <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
+
+      <template x-if="!loading">
+        <div>
+          <div class="card">
+            <div class="form-group">
+              <label>ชื่อเล่น / ชื่อที่ใช้ในระบบ</label>
+              <input type="text" x-model="form.nickname" placeholder="เช่น เจ้เล็ก" />
+            </div>
+
+            <div class="form-group">
+              <label>💵 เงินสดปัจจุบัน (บาท) <span class="text-muted" style="font-weight:400;">— เงินสด</span></label>
+              <input type="number" step="0.01" min="0" x-model="form.cash_amount" placeholder="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label>🏦 เงินในบัญชีธนาคาร (บาท) <span class="text-muted" style="font-weight:400;">— เงินโอน</span></label>
+              <input type="number" step="0.01" min="0" x-model="form.bank_amount" placeholder="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label>📱 เงินใน E-Wallet (บาท) <span class="text-muted" style="font-weight:400;">— เงินโอน</span></label>
+              <input type="number" step="0.01" min="0" x-model="form.ewallet_amount" placeholder="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label>อื่น ๆ</label>
+              <template x-for="(item, index) in form.other_items" :key="index">
+                <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                  <input type="text" x-model="item.label" placeholder="ชื่อรายการ เช่น ทองคำ" style="flex:2; min-width:120px; padding:10px; border:1px solid var(--color-border); border-radius:8px;" />
+                  <input type="number" step="0.01" min="0" x-model="item.amount" placeholder="0.00" style="flex:1; min-width:90px; padding:10px; border:1px solid var(--color-border); border-radius:8px;" />
+                  <select x-model="item.payment_method" style="flex:1; min-width:100px; padding:10px; border:1px solid var(--color-border); border-radius:8px;">
+                    <option value="cash">💵 เงินสด</option>
+                    <option value="transfer">🏦 เงินโอน</option>
+                  </select>
+                  <button class="btn btn-danger" style="padding:0 12px;" @click="removeOtherItem(index)">✕</button>
+                </div>
+              </template>
+              <button class="btn" style="border:1px solid var(--color-border); font-size:0.85rem;" @click="addOtherItem()">+ เพิ่มอื่น ๆ</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--color-border);">
+              <span class="text-muted">💵 รวมเงินสด</span>
+              <span x-text="formatCurrency(totalCash)"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--color-border);">
+              <span class="text-muted">🏦 รวมเงินโอน</span>
+              <span x-text="formatCurrency(totalTransfer)"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-weight:600;">
+              <span>รวมเงินทั้งหมด</span>
+              <span x-text="formatCurrency(totalAmount)"></span>
+            </div>
+          </div>
+
+          <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
+          <p x-show="savedMsg" x-text="savedMsg" style="color:var(--color-primary-dark); font-size:0.9rem;"></p>
+
+          <button class="btn btn-primary btn-block" :disabled="saving" @click="save()">
+            <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
+          </button>
+        </div>
+      </template>
+    </main>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="/app/dashboard.html">สรุปยอด</a>
+    <a href="/app/transactions.html">รายการ</a>
+    <a href="/app/budgets.html">งบประมาณ</a>
+    <a href="/app/reports.html">รายงาน</a>
+    <a href="/app/members.html">สมาชิก</a>
+    <a href="/app/profile.html" class="active">ตัวเอง</a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/community.js"></script>
+  <script src="/js/db.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/guard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="/js/pwa.js"></script>
+  <script>
+    function profilePage() {
+      return {
+        loading: true,
+        saving: false,
+        errorMsg: "",
+        savedMsg: "",
+        form: defaultProfileForm(),
+
+        async init() {
+          if (window.CURRENT_COMMUNITY_ID) {
+            await this.loadProfile();
+          } else {
+            document.addEventListener("app:ready", () => this.loadProfile());
+          }
+        },
+
+        async loadProfile() {
+          this.loading = true;
+          try {
+            const { data, error } = await DB.getMyFinanceProfile();
+            if (error) throw error;
+            if (data) {
+              this.form = {
+                nickname: data.nickname || "",
+                cash_amount: data.cash_amount,
+                bank_amount: data.bank_amount,
+                ewallet_amount: data.ewallet_amount,
+                other_items: (data.other_items || []).map((i) => ({
+                  label: i.label,
+                  amount: i.amount,
+                  payment_method: i.payment_method || "cash",
+                })),
+              };
+            }
+          } catch (e) {
+            this.errorMsg = "โหลดข้อมูลไม่สำเร็จ: " + e.message;
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        addOtherItem() {
+          this.form.other_items.push({ label: "", amount: "", payment_method: "cash" });
+        },
+
+        removeOtherItem(index) {
+          this.form.other_items.splice(index, 1);
+        },
+
+        get totalAmount() {
+          const base =
+            (parseFloat(this.form.cash_amount) || 0) +
+            (parseFloat(this.form.bank_amount) || 0) +
+            (parseFloat(this.form.ewallet_amount) || 0);
+          const otherTotal = this.form.other_items.reduce(
+            (sum, i) => sum + (parseFloat(i.amount) || 0),
+            0
+          );
+          return base + otherTotal;
+        },
+
+        get totalCash() {
+          const otherCash = this.form.other_items
+            .filter((i) => i.payment_method !== "transfer")
+            .reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+          return (parseFloat(this.form.cash_amount) || 0) + otherCash;
+        },
+
+        get totalTransfer() {
+          const otherTransfer = this.form.other_items
+            .filter((i) => i.payment_method === "transfer")
+            .reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+          return (
+            (parseFloat(this.form.bank_amount) || 0) +
+            (parseFloat(this.form.ewallet_amount) || 0) +
+            otherTransfer
+          );
+        },
+
+        async save() {
+          this.errorMsg = "";
+          this.savedMsg = "";
+          this.saving = true;
+
+          try {
+            const payload = {
+              nickname: this.form.nickname.trim() || null,
+              cash_amount: parseFloat(this.form.cash_amount) || 0,
+              bank_amount: parseFloat(this.form.bank_amount) || 0,
+              ewallet_amount: parseFloat(this.form.ewallet_amount) || 0,
+              other_items: this.form.other_items
+                .filter((i) => i.label.trim() || parseFloat(i.amount) > 0)
+                .map((i) => ({
+                  label: i.label.trim(),
+                  amount: parseFloat(i.amount) || 0,
+                  payment_method: i.payment_method || "cash",
+                })),
+            };
+
+            const { error } = await DB.upsertMyFinanceProfile(payload);
+            if (error) throw error;
+
+            this.savedMsg = "บันทึกเรียบร้อย ✓";
+            setTimeout(() => (this.savedMsg = ""), 2000);
+          } catch (e) {
+            this.errorMsg = "บันทึกไม่สำเร็จ: " + e.message;
+          } finally {
+            this.saving = false;
+          }
+        },
+
+        formatCurrency(n) {
+          return AppUtils.formatCurrency(n);
+        },
+      };
+    }
+
+    function defaultProfileForm() {
+      return {
+        nickname: "",
+        cash_amount: "",
+        bank_amount: "",
+        ewallet_amount: "",
+        other_items: [],
+      };
+    }
+  </script>
+</body>
+</html>

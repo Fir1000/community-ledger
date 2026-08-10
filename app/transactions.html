@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>รายรับ-รายจ่าย - บัญชีชุมชน</title>
+  <title>รายรับ-รายจ่าย - บัญชี</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
@@ -14,13 +14,14 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">บัญชีชุมชน</div>
+      <div class="brand">บัญชี</div>
       <a href="/app/dashboard.html">สรุปยอด</a>
       <a href="/app/transactions.html" class="active">รายรับ-รายจ่าย</a>
       <a href="/app/categories.html">หมวดหมู่</a>
       <a href="/app/budgets.html">งบประมาณ</a>
       <a href="/app/reports.html">รายงาน</a>
       <a href="/app/members.html">สมาชิก</a>
+      <a href="/app/profile.html">เกี่ยวกับตัวเอง 👤</a>
     </aside>
 
     <main class="main" x-data="transactionsPage()" x-init="init()">
@@ -44,7 +45,7 @@
         <template x-for="t in transactions" :key="t.id">
           <div class="transaction-row" @click="openEditForm(t)">
             <div>
-              <div x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่')"></div>
+              <div x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่') + (t.payment_method === 'transfer' ? ' · 🏦 โอน' : ' · 💵 สด')"></div>
               <div class="text-muted" style="font-size:0.8rem;" x-text="formatDate(t.transaction_date) + (t.note ? ' · ' + t.note : '')"></div>
             </div>
             <div :class="t.type === 'income' ? 'amount-income' : 'amount-expense'" x-text="(t.type === 'income' ? '+' : '-') + formatCurrency(t.amount)"></div>
@@ -77,6 +78,14 @@
                 <option :value="c.id" x-text="c.icon + ' ' + c.name"></option>
               </template>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label>ช่องทาง</label>
+            <div class="segmented">
+              <button type="button" :class="form.payment_method === 'cash' ? 'active-cash' : ''" @click="form.payment_method = 'cash'">💵 เงินสด</button>
+              <button type="button" :class="form.payment_method === 'transfer' ? 'active-transfer' : ''" @click="form.payment_method = 'transfer'">🏦 เงินโอน</button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -124,6 +133,7 @@
     <a href="/app/budgets.html">งบประมาณ</a>
     <a href="/app/reports.html">รายงาน</a>
     <a href="/app/members.html">สมาชิก</a>
+    <a href="/app/profile.html">ตัวเอง</a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -208,6 +218,7 @@
             type: t.type,
             category_id: t.category_id || "",
             amount: t.amount,
+            payment_method: t.payment_method || "cash",
             note: t.note || "",
             transaction_date: t.transaction_date,
             receipt_path: t.receipt_path || "",
@@ -241,6 +252,7 @@
             type: this.form.type,
             category_id: this.form.category_id,
             amount,
+            payment_method: this.form.payment_method,
             note: this.form.note || null,
             transaction_date: this.form.transaction_date,
           };
@@ -307,6 +319,7 @@
         type: "expense",
         category_id: "",
         amount: "",
+        payment_method: "cash",
         note: "",
         transaction_date: new Date().toISOString().slice(0, 10),
         receipt_path: "",

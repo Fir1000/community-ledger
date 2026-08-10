@@ -146,4 +146,21 @@ const DB = {
   async removeMember(memberId) {
     return await window.sb.from("community_members").delete().eq("id", memberId);
   },
+
+  // --- Personal finance profile ("เกี่ยวกับตัวเอง") ---
+  async getMyFinanceProfile() {
+    return await window.sb
+      .from("personal_finance_profiles")
+      .select("*")
+      .eq("user_id", window.CURRENT_USER.id)
+      .maybeSingle();
+  },
+
+  async upsertMyFinanceProfile(data) {
+    return await window.sb
+      .from("personal_finance_profiles")
+      .upsert({ user_id: window.CURRENT_USER.id, ...data }, { onConflict: "user_id" })
+      .select()
+      .single();
+  },
 };

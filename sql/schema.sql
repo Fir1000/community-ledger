@@ -1,5 +1,5 @@
 -- ============================================================
--- บัญชีชุมชน - Database Schema + RLS
+-- บัญชี - Database Schema + RLS
 -- รันไฟล์นี้ทั้งหมดใน Supabase Dashboard > SQL Editor > New query
 -- ============================================================
 
@@ -49,6 +49,7 @@ create table public.transactions (
   category_id uuid references public.categories (id),
   type text not null check (type in ('income', 'expense')),
   amount numeric(12, 2) not null check (amount > 0),
+  payment_method text not null default 'cash' check (payment_method in ('cash', 'transfer')),
   note text,
   receipt_url text,
   transaction_date date not null default current_date,
@@ -65,6 +66,17 @@ create table public.budgets (
   amount_limit numeric(12, 2) not null check (amount_limit > 0),
   created_at timestamptz not null default now(),
   unique (community_id, category_id, year, month)
+);
+
+create table public.personal_finance_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users (id) on delete cascade,
+  nickname text,
+  cash_amount numeric(12, 2) not null default 0,
+  bank_amount numeric(12, 2) not null default 0,
+  ewallet_amount numeric(12, 2) not null default 0,
+  other_items jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
 );
 
 -- Indexes ที่ใช้บ่อย
@@ -111,6 +123,10 @@ create trigger trg_transactions_updated_at
   before update on public.transactions
   for each row execute function public.set_updated_at();
 
+create trigger trg_personal_finance_profiles_updated_at
+  before update on public.personal_finance_profiles
+  for each row execute function public.set_updated_at();
+
 -- ------------------------------------------------------------
 -- 4. HELPER FUNCTIONS (security definer เพื่อกัน RLS recursion)
 -- ------------------------------------------------------------
@@ -154,6 +170,7 @@ alter table public.community_members enable row level security;
 alter table public.categories enable row level security;
 alter table public.transactions enable row level security;
 alter table public.budgets enable row level security;
+alter table public.personal_finance_profiles enable row level security;
 
 -- ------------------------------------------------------------
 -- 6. POLICIES: profiles
@@ -273,6 +290,26 @@ create policy "budgets: admin แก้ไขงบประมาณได้"
 create policy "budgets: admin ลบงบประมาณได้"
   on public.budgets for delete
   using (public.is_community_admin(community_id));
+
+-- ------------------------------------------------------------
+-- 11b. POLICIES: personal_finance_profiles ("เกี่ยวกับตัวเอง")
+-- ------------------------------------------------------------
+
+create policy "personal_finance_profiles: ดูข้อมูลของตัวเอง"
+  on public.personal_finance_profiles for select
+  using (user_id = auth.uid());
+
+create policy "personal_finance_profiles: เพิ่มข้อมูลของตัวเอง"
+  on public.personal_finance_profiles for insert
+  with check (user_id = auth.uid());
+
+create policy "personal_finance_profiles: แก้ไขข้อมูลของตัวเอง"
+  on public.personal_finance_profiles for update
+  using (user_id = auth.uid());
+
+create policy "personal_finance_profiles: ลบข้อมูลของตัวเอง"
+  on public.personal_finance_profiles for delete
+  using (user_id = auth.uid());
 
 -- ------------------------------------------------------------
 -- 12. STORAGE BUCKET สำหรับรูปใบเสร็จ

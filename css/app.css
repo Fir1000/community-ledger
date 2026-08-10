@@ -271,6 +271,43 @@ a {
   color: #fff;
 }
 
+.segmented button.active-cash {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.segmented button.active-transfer {
+  background: #2563eb;
+  color: #fff;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
 .transaction-row {
   display: flex;
   justify-content: space-between;
