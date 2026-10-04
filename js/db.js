@@ -1,4 +1,4 @@
-// ฟังก์ชัน CRUD กลางสำหรับคุยกับ Supabase (transactions, categories, budgets, members)
+// ฟังก์ชัน CRUD กลางสำหรับคุยกับ Supabase (transactions, categories, members)
 
 const DB = {
   // --- Transactions ---
@@ -100,31 +100,6 @@ const DB = {
 
   async deleteCategory(id) {
     return await window.sb.from("categories").delete().eq("id", id);
-  },
-
-  // --- Budgets ---
-  async listBudgets(communityId, year, month) {
-    return await window.sb
-      .from("budgets")
-      .select("*, categories(name, icon, color)")
-      .eq("community_id", communityId)
-      .eq("year", year)
-      .eq("month", month);
-  },
-
-  async upsertBudget(data) {
-    return await window.sb
-      .from("budgets")
-      .upsert(
-        { community_id: window.CURRENT_COMMUNITY_ID, ...data },
-        { onConflict: "community_id,category_id,year,month" }
-      )
-      .select()
-      .single();
-  },
-
-  async deleteBudget(id) {
-    return await window.sb.from("budgets").delete().eq("id", id);
   },
 
   // --- Community members ---

@@ -1,4 +1,4 @@
-const CACHE_NAME = "community-ledger-v3";
+const CACHE_NAME = "community-ledger-v4";
 
 const PRECACHE_URLS = [
   "/",
@@ -8,7 +8,6 @@ const PRECACHE_URLS = [
   "/app/dashboard.html",
   "/app/transactions.html",
   "/app/categories.html",
-  "/app/budgets.html",
   "/app/reports.html",
   "/app/members.html",
   "/app/profile.html",
