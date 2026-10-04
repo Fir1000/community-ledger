@@ -93,8 +93,8 @@
       </div>
 
       <div class="card">
-        <p class="text-muted" style="font-weight:600;">กราฟ X-Ray (แต่ละรายการที่บันทึก)</p>
-        <p class="text-muted" style="font-size:0.8rem; margin-top:-6px;">แต่ละจุด = 1 รายการที่บันทึกไว้ตามจำนวนเงินจริง เส้นสีเขียวขึ้น = รายรับ, เส้นสีแดงลง = รายจ่าย (เทียบกับเส้น 0 ตรงกลาง)</p>
+        <p class="text-muted" style="font-weight:600;">ความถี่ (แต่ละรายการที่บันทึก)</p>
+        <p class="text-muted" style="font-size:0.8rem; margin-top:-6px;">แต่ละยอดของเส้น = 1 รายการที่บันทึกไว้ตามจำนวนเงินจริง เส้นสีเขียวขึ้น = รายรับ, เส้นสีแดงลง = รายจ่าย (เทียบกับเส้น 0 ตรงกลาง)</p>
 
         <div x-show="trendLoading" class="empty-state">กำลังโหลด...</div>
         <div style="position:relative; height:280px;" x-show="!trendLoading && trendHasData">
@@ -727,8 +727,8 @@
                   },
                   pointBackgroundColor: pointColors,
                   pointBorderColor: pointColors,
-                  pointRadius: 4,
-                  pointHoverRadius: 6,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
                   tension: 0,
                   fill: false,
                 },
