@@ -14,30 +14,30 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Daily Fir</div>
-      <a href="/app/dashboard.html" class="active">สรุปยอด</a>
-      <a href="/app/transactions.html">รายรับ-รายจ่าย</a>
-      <a href="/app/categories.html">หมวดหมู่</a>
-      <a href="/app/reports.html">รายงาน</a>
-      <a href="/app/members.html">สมาชิก</a>
-      <a href="/app/profile.html">เกี่ยวกับตัวเอง 👤</a>
+      <div class="brand"><img src="/assets/icons/icon-192.png" alt="" />Daily Fir</div>
+      <a href="/app/dashboard.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>สรุปยอด</span></a>
+      <a href="/app/transactions.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg><span>รายรับ-รายจ่าย</span></a>
+      <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
+      <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
+      <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
+      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>เกี่ยวกับตัวเอง</span></a>
     </aside>
 
     <main class="main" x-data="dashboardPage()" x-init="init()">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <span data-community-name style="font-weight:600;"></span>
-        <a href="#" data-logout class="text-muted" style="font-size:0.85rem;">ออกจากระบบ</a>
+      <div class="topbar">
+        <span class="community-pill" data-community-name></span>
+        <a href="#" data-logout class="logout-link">ออกจากระบบ</a>
       </div>
       <h2>สรุปยอด</h2>
 
-      <div class="card" style="text-align:center;">
+      <div class="card hero-card">
         <p class="text-muted" style="margin:0; font-size:0.85rem;">ยอดเงินคงเหลือทั้งหมด</p>
-        <p style="font-size:1.1rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(startingBalance + previousBalance + balance)"></p>
+        <p class="hero-amount" x-text="formatCurrency(startingBalance + previousBalance + balance)"></p>
         <p class="text-muted" style="margin:2px 0 0; font-size:0.75rem;" x-show="startingBalance !== 0">
           (รวมยอดเริ่มต้นจากหน้า "เกี่ยวกับตัวเอง" <span x-text="formatCurrency(startingBalance)"></span>)
         </p>
 
-        <div style="display:flex; justify-content:space-around; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-border);">
+        <div class="hero-split">
           <div>
             <p class="text-muted" style="margin:0; font-size:0.8rem;">💵 เงินสดคงเหลือ</p>
             <p style="font-weight:700; margin:2px 0 0;" x-text="formatCurrency(cashRemaining)"></p>
@@ -168,11 +168,11 @@
   </div>
 
   <nav class="bottom-nav">
-    <a href="/app/dashboard.html" class="active">สรุปยอด</a>
-    <a href="/app/transactions.html">รายการ</a>
-    <a href="/app/reports.html">รายงาน</a>
-    <a href="/app/members.html">สมาชิก</a>
-    <a href="/app/profile.html">ตัวเอง</a>
+    <a href="/app/dashboard.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>สรุปยอด</span></a>
+    <a href="/app/transactions.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg><span>รายการ</span></a>
+    <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
+    <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
+    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตัวเอง</span></a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
