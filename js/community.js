@@ -2,10 +2,15 @@
 // ผู้ใช้หนึ่งคนอาจอยู่หลายบัญชีได้ในอนาคต แต่ตอนนี้ MVP เลือกใช้บัญชีแรกที่พบก่อน
 
 const Community = {
+  // แถวสมาชิกภาพของผู้ใช้คนนี้เท่านั้น (RLS ให้เห็นสมาชิกทุกคนในบัญชีเดียวกัน จึงต้องกรอง user_id เอง)
   async getMyCommunities() {
+    const {
+      data: { session },
+    } = await window.sb.auth.getSession();
     return await window.sb
       .from("community_members")
-      .select("community_id, role, communities(id, name, invite_code)");
+      .select("*, communities(*)")
+      .eq("user_id", session?.user?.id);
   },
 
   getCurrentId() {

@@ -252,6 +252,8 @@
         },
 
         async loadStartingBalance() {
+          // ยอดเริ่มต้นส่วนตัวรวมเฉพาะบัญชีที่ตัวเองเป็นเจ้าของ ไม่ไปรวมกับบัญชีของคนอื่นที่เข้าร่วม
+          if (!window.IS_ACCOUNT_OWNER) return;
           const { data, error } = await DB.getMyFinanceProfile();
           if (error || !data) return;
           const otherItems = data.other_items || [];

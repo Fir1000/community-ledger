@@ -43,7 +43,7 @@
 
       <div class="card" x-show="!loading && transactions.length > 0">
         <template x-for="t in transactions" :key="t.id">
-          <div class="transaction-row" @click="openEditForm(t)">
+          <div class="transaction-row" @click="canEdit && openEditForm(t)" :style="canEdit ? '' : 'cursor:default'">
             <div>
               <div x-text="AppUtils.categoryLabel(t.categories) + (t.payment_method === 'transfer' ? ' · 🏦 โอน' : ' · 💵 สด')"></div>
               <div class="text-muted" style="font-size:0.8rem;" x-text="formatDate(t.transaction_date) + (t.note ? ' · ' + t.note : '')"></div>
@@ -53,7 +53,7 @@
         </template>
       </div>
 
-      <button class="fab" @click="openAddForm('expense')">+</button>
+      <button class="fab" x-show="canEdit" @click="openAddForm('expense')">+</button>
 
       <!-- Modal ฟอร์มเพิ่ม/แก้ไขรายการ -->
       <div class="modal-overlay" x-show="showForm" x-cloak @click.self="closeForm()">
@@ -160,6 +160,7 @@
         receiptPreviewUrl: "",
         errorMsg: "",
         form: defaultTransactionForm(),
+        canEdit: true,
 
         async init() {
           if (window.CURRENT_COMMUNITY_ID) {
@@ -170,6 +171,7 @@
         },
 
         async bootstrap() {
+          this.canEdit = window.CAN_EDIT_TRANSACTIONS !== false;
           await this.loadCategories();
           await this.loadTransactions();
         },

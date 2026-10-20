@@ -20,6 +20,10 @@
 
   window.CURRENT_USER_ROLE = membership?.role || "member";
   window.IS_ADMIN = window.CURRENT_USER_ROLE === "admin";
+  // สมาชิกที่ผู้ดูแลปิดสิทธิ์จะดูรายการได้อย่างเดียว (ผู้ดูแลแก้ไขได้เสมอ)
+  window.CAN_EDIT_TRANSACTIONS = window.IS_ADMIN || membership?.can_edit_transactions !== false;
+  // เจ้าของบัญชี = คนที่สร้าง ใช้ตัดสินว่าจะรวมยอดเริ่มต้นส่วนตัว (หน้าตั้งค่า) เข้ากับบัญชีนี้หรือไม่
+  window.IS_ACCOUNT_OWNER = community?.created_by === user.id;
 
   document.querySelectorAll("[data-community-name]").forEach((el) => {
     el.textContent = community?.name || "";

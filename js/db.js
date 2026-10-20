@@ -106,7 +106,7 @@ const DB = {
   async listMembers(communityId) {
     return await window.sb
       .from("community_members")
-      .select("id, role, joined_at, user_id, profiles(id, full_name, avatar_url)")
+      .select("*, profiles(id, full_name, avatar_url)")
       .eq("community_id", communityId)
       .order("joined_at");
   },
@@ -115,6 +115,13 @@ const DB = {
     return await window.sb
       .from("community_members")
       .update({ role })
+      .eq("id", memberId);
+  },
+
+  async updateMemberEditPermission(memberId, canEdit) {
+    return await window.sb
+      .from("community_members")
+      .update({ can_edit_transactions: canEdit })
       .eq("id", memberId);
   },
 

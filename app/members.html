@@ -111,6 +111,17 @@
               <span x-text="m.profiles ? m.profiles.full_name : 'ไม่ทราบชื่อ'"></span>
               <span x-show="m.user_id === currentUserId" class="text-muted" style="font-size:0.8rem;">(คุณ)</span>
               <div class="text-muted" style="font-size:0.8rem;" x-text="m.role === 'admin' ? 'ผู้ดูแล' : 'สมาชิก'"></div>
+              <template x-if="m.role !== 'admin'">
+                <div style="margin-top:4px; font-size:0.8rem;" class="text-muted">
+                  <template x-if="isAdmin">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                      <input type="checkbox" :checked="m.can_edit_transactions !== false" @change="toggleEditPermission(m, $event.target)" style="width:16px; height:16px; accent-color:var(--color-primary); margin:0;" />
+                      อนุญาตให้บันทึกรายรับ-รายจ่าย
+                    </label>
+                  </template>
+                  <span x-show="!isAdmin" x-text="m.can_edit_transactions !== false ? 'บันทึกรายรับ-รายจ่ายได้' : 'ดูได้อย่างเดียว'"></span>
+                </div>
+              </template>
             </div>
 
             <div style="display:flex; gap:8px; align-items:center;">
@@ -274,6 +285,17 @@
             return;
           }
           this.inviteCode = data.invite_code;
+        },
+
+        async toggleEditPermission(member, checkbox) {
+          const canEdit = checkbox.checked;
+          const { error } = await DB.updateMemberEditPermission(member.id, canEdit);
+          if (error) {
+            checkbox.checked = !canEdit;
+            alert("ทำรายการไม่สำเร็จ: " + error.message);
+            return;
+          }
+          member.can_edit_transactions = canEdit;
         },
 
         async changeRole(member, newRole) {
