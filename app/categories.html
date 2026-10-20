@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
+  <script src="/js/theme.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>หมวดหมู่ - Daily Fir</title>
   <link rel="manifest" href="/manifest.json" />
@@ -20,7 +21,7 @@
       <a href="/app/categories.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
       <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
       <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>เกี่ยวกับตัวเอง</span></a>
+      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
     </aside>
 
     <main class="main" x-data="categoriesPage()" x-init="init()">
@@ -36,8 +37,7 @@
       <template x-if="!loading">
         <div>
           <div class="card">
-            <p class="text-muted" style="margin-top:0;">รายรับ</p>
-            <template x-for="c in incomeCategories" :key="c.id">
+            <template x-for="c in categories" :key="c.id">
               <div class="transaction-row">
                 <span x-text="c.icon + ' ' + c.name"></span>
                 <span>
@@ -51,26 +51,7 @@
                 </span>
               </div>
             </template>
-            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd('income')">+ เพิ่มหมวดหมู่รายรับ</button>
-          </div>
-
-          <div class="card">
-            <p class="text-muted" style="margin-top:0;">รายจ่าย</p>
-            <template x-for="c in expenseCategories" :key="c.id">
-              <div class="transaction-row">
-                <span x-text="c.icon + ' ' + c.name"></span>
-                <span>
-                  <span x-show="c.community_id === null" class="text-muted" style="font-size:0.8rem;">ระบบ</span>
-                  <template x-if="c.community_id !== null">
-                    <span>
-                      <a href="#" @click.prevent="openEdit(c)" style="margin-right:10px;">แก้ไข</a>
-                      <a href="#" @click.prevent="handleDelete(c)" style="color:#c0392b;">ลบ</a>
-                    </span>
-                  </template>
-                </span>
-              </div>
-            </template>
-            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd('expense')">+ เพิ่มหมวดหมู่รายจ่าย</button>
+            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd()">+ เพิ่มหมวดหมู่</button>
           </div>
         </div>
       </template>
@@ -81,8 +62,11 @@
           <h3 x-text="editingId ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่'"></h3>
 
           <div class="form-group">
-            <label>ไอคอน (emoji)</label>
-            <input type="text" x-model="form.icon" maxlength="4" placeholder="💰" style="width:80px; text-align:center; font-size:1.3rem;" />
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <label style="margin:0;">ไอคอน (emoji)</label>
+              <button type="button" class="switch" :class="form.useIcon && 'on'" role="switch" :aria-checked="form.useIcon" aria-label="ใช้ไอคอน" @click="form.useIcon = !form.useIcon"></button>
+            </div>
+            <input type="text" x-show="form.useIcon" x-model="form.icon" maxlength="4" style="width:80px; text-align:center; font-size:1.3rem;" />
           </div>
 
           <div class="form-group">
@@ -114,10 +98,10 @@
     <a href="/app/categories.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
     <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
     <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตัวเอง</span></a>
+    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="/js/config.js"></script>
   <script src="/js/supabaseClient.js"></script>
   <script src="/js/auth.js"></script>
@@ -125,7 +109,7 @@
   <script src="/js/db.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/guard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js" defer></script>
   <script src="/js/pwa.js"></script>
   <script>
     function categoriesPage() {
@@ -153,24 +137,18 @@
           this.loading = false;
         },
 
-        get incomeCategories() {
-          return this.categories.filter((c) => c.type === "income");
-        },
-        get expenseCategories() {
-          return this.categories.filter((c) => c.type === "expense");
-        },
-
-        openAdd(type) {
+        openAdd() {
           this.editingId = null;
           this.errorMsg = "";
-          this.form = { name: "", icon: type === "income" ? "💰" : "📦", color: type === "income" ? "#2f7d5f" : "#c0392b", type };
+          // คอลัมน์ type ยังบังคับใน DB แต่หมวดหมู่ใช้ได้ทั้งรายรับและรายจ่าย
+          this.form = { name: "", icon: "💰", useIcon: true, color: "#2f7d5f", type: "expense" };
           this.showForm = true;
         },
 
         openEdit(c) {
           this.editingId = c.id;
           this.errorMsg = "";
-          this.form = { name: c.name, icon: c.icon, color: c.color, type: c.type };
+          this.form = { name: c.name, icon: c.icon || "💰", useIcon: !!c.icon, color: c.color, type: c.type };
           this.showForm = true;
         },
 
@@ -188,7 +166,7 @@
 
           const payload = {
             name: this.form.name.trim(),
-            icon: this.form.icon || "💰",
+            icon: this.form.useIcon ? this.form.icon.trim() : "",
             color: this.form.color,
             type: this.form.type,
           };

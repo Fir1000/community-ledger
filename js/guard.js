@@ -12,20 +12,11 @@
   window.CURRENT_USER = user;
   window.CURRENT_COMMUNITY_ID = communityId;
 
-  const { data: community } = await window.sb
-    .from("communities")
-    .select("name, invite_code")
-    .eq("id", communityId)
-    .single();
+  // requireCommunity() ดึง role + ชื่อ/รหัสเชิญของชุมชนมาแล้ว ใช้ต่อได้เลยไม่ต้อง query ซ้ำ
+  const membership = Community.currentMembership;
+  const community = membership?.communities || null;
 
   window.CURRENT_COMMUNITY = community;
-
-  const { data: membership } = await window.sb
-    .from("community_members")
-    .select("role")
-    .eq("community_id", communityId)
-    .eq("user_id", user.id)
-    .single();
 
   window.CURRENT_USER_ROLE = membership?.role || "member";
   window.IS_ADMIN = window.CURRENT_USER_ROLE === "admin";

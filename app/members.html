@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
+  <script src="/js/theme.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>สมาชิก - Daily Fir</title>
   <link rel="manifest" href="/manifest.json" />
@@ -20,7 +21,7 @@
       <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
       <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
       <a href="/app/members.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>เกี่ยวกับตัวเอง</span></a>
+      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
     </aside>
 
     <main class="main" x-data="membersPage()" x-init="init()">
@@ -29,10 +30,10 @@
         <a href="#" data-logout class="logout-link">ออกจากระบบ</a>
       </div>
 
-      <h2>สมาชิกชุมชน</h2>
+      <h2>สมาชิกบัญชี</h2>
 
       <div class="card">
-        <p class="text-muted" style="margin-top:0;">ชื่อชุมชน</p>
+        <p class="text-muted" style="margin-top:0;">ชื่อบัญชี</p>
         <div style="display:flex; gap:8px;">
           <input
             type="text"
@@ -57,10 +58,48 @@
           <input type="text" :value="inviteCode" readonly style="flex:1; padding:10px; border:1px solid var(--color-border); border-radius:8px; font-family:monospace; font-size:1.1rem;" />
           <button class="btn btn-primary" @click="copyInviteCode()" x-text="copyLabel"></button>
         </div>
-        <p class="text-muted" style="font-size:0.85rem;">ส่งรหัสนี้ให้คนที่ต้องการชวนเข้าชุมชน แล้วให้เขาไปกด "เข้าร่วมด้วยรหัส" ตอนสมัคร/ล็อกอิน</p>
+        <p class="text-muted" style="font-size:0.85rem;">ส่งรหัสนี้ให้คนที่ต้องการชวนเข้าบัญชี แล้วให้เขาไปกด "เข้าร่วมด้วยรหัส" ตอนสมัคร/ล็อกอิน</p>
         <button x-show="isAdmin" class="btn" style="border:1px solid var(--color-border); font-size:0.85rem;" @click="regenerateCode()">
           🔄 สร้างรหัสใหม่ (รหัสเดิมจะใช้ไม่ได้อีก)
         </button>
+      </div>
+
+      <div class="card">
+        <p class="text-muted" style="margin-top:0;">เข้าสู่ระบบสมาชิก (บัญชีอื่น)</p>
+        <div style="display:flex; gap:8px;">
+          <input
+            type="text"
+            x-model="joinCode"
+            placeholder="ใส่รหัสเชิญ เช่น a1b2c3d4"
+            @keydown.enter="joinWithCode()"
+            style="flex:1; padding:10px; border:1px solid var(--color-border); border-radius:8px; font-family:monospace; font-size:1.1rem;"
+          />
+          <button class="btn btn-primary" @click="joinWithCode()" :disabled="joining">
+            <span x-text="joining ? '...' : 'เข้าสู่ระบบสมาชิก'"></span>
+          </button>
+        </div>
+        <p x-show="joinError" x-text="joinError" style="color:#c0392b; font-size:0.85rem;"></p>
+
+        <template x-if="myCommunities.length > 1">
+          <div style="margin-top:12px;">
+            <p class="text-muted" style="font-size:0.85rem;">บัญชีของฉัน</p>
+            <template x-for="m in myCommunities" :key="m.community_id">
+              <div class="transaction-row">
+                <div>
+                  <span x-text="m.communities ? m.communities.name : 'ไม่ทราบชื่อ'"></span>
+                  <div class="text-muted" style="font-size:0.8rem;" x-text="m.role === 'admin' ? 'ผู้ดูแล' : 'สมาชิก'"></div>
+                </div>
+                <span x-show="m.community_id === currentCommunityId" class="text-muted" style="font-size:0.85rem;">กำลังใช้งาน</span>
+                <button
+                  x-show="m.community_id !== currentCommunityId"
+                  class="btn"
+                  style="padding:6px 12px; font-size:0.85rem; border:1px solid var(--color-border);"
+                  @click="switchCommunity(m.community_id)"
+                >สลับไปบัญชีนี้</button>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
 
       <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
@@ -94,7 +133,7 @@
                 class="btn"
                 style="padding:6px 12px; font-size:0.85rem; border:1px solid var(--color-danger); color:var(--color-danger);"
                 @click="leaveGroup(m)"
-              >ออกจากชุมชน</button>
+              >ออกจากบัญชี</button>
             </div>
           </div>
         </template>
@@ -108,10 +147,10 @@
     <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
     <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
     <a href="/app/members.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตัวเอง</span></a>
+    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="/js/config.js"></script>
   <script src="/js/supabaseClient.js"></script>
   <script src="/js/auth.js"></script>
@@ -119,7 +158,7 @@
   <script src="/js/db.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/guard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js" defer></script>
   <script src="/js/pwa.js"></script>
   <script>
     function membersPage() {
@@ -132,8 +171,14 @@
         communityName: "",
         savingName: false,
         members: [],
+        joinCode: "",
+        joining: false,
+        joinError: "",
+        myCommunities: [],
+        currentCommunityId: null,
 
         async init() {
+          this.loadMyCommunities();
           if (window.CURRENT_COMMUNITY_ID) {
             this.isAdmin = window.IS_ADMIN;
             this.currentUserId = window.CURRENT_USER.id;
@@ -158,6 +203,34 @@
           this.loading = false;
         },
 
+        async loadMyCommunities() {
+          this.currentCommunityId = Community.getCurrentId();
+          const { data, error } = await Community.getMyCommunities();
+          if (!error) this.myCommunities = data;
+        },
+
+        async joinWithCode() {
+          this.joinError = "";
+          const code = this.joinCode.trim();
+          if (!code) {
+            this.joinError = "กรุณากรอกรหัสเชิญ";
+            return;
+          }
+          this.joining = true;
+          const { data, error } = await Community.joinByCode(code);
+          this.joining = false;
+          if (error) {
+            this.joinError = "เข้าร่วมไม่สำเร็จ: " + error.message;
+            return;
+          }
+          this.switchCommunity(data.id);
+        },
+
+        switchCommunity(communityId) {
+          Community.setCurrentId(communityId);
+          window.location.href = "/app/dashboard.html";
+        },
+
         get adminCount() {
           return this.members.filter((m) => m.role === "admin").length;
         },
@@ -175,7 +248,7 @@
         async saveCommunityName() {
           const name = this.communityName.trim();
           if (!name) {
-            alert("กรุณากรอกชื่อชุมชน");
+            alert("กรุณากรอกชื่อบัญชี");
             return;
           }
           this.savingName = true;
@@ -205,7 +278,7 @@
 
         async changeRole(member, newRole) {
           if (member.role === "admin" && newRole === "member" && this.adminCount <= 1) {
-            alert("ไม่สามารถลดสิทธิ์ได้ เพราะเป็นผู้ดูแลคนสุดท้ายของชุมชน");
+            alert("ไม่สามารถลดสิทธิ์ได้ เพราะเป็นผู้ดูแลคนสุดท้ายของบัญชี");
             await this.loadMembers();
             return;
           }
@@ -217,7 +290,7 @@
         },
 
         async removeMember(member) {
-          if (!confirm(`ลบ "${member.profiles?.full_name}" ออกจากชุมชน?`)) return;
+          if (!confirm(`ลบ "${member.profiles?.full_name}" ออกจากบัญชี?`)) return;
           const { error } = await DB.removeMember(member.id);
           if (error) {
             alert("ทำรายการไม่สำเร็จ: " + error.message);
@@ -228,10 +301,10 @@
 
         async leaveGroup(member) {
           if (member.role === "admin" && this.adminCount <= 1) {
-            alert("คุณเป็นผู้ดูแลคนสุดท้าย กรุณาตั้งสมาชิกคนอื่นเป็นผู้ดูแลก่อนออกจากชุมชน");
+            alert("คุณเป็นผู้ดูแลคนสุดท้าย กรุณาตั้งสมาชิกคนอื่นเป็นผู้ดูแลก่อนออกจากบัญชี");
             return;
           }
-          if (!confirm("ยืนยันออกจากชุมชนนี้?")) return;
+          if (!confirm("ยืนยันออกจากบัญชีนี้?")) return;
           const { error } = await DB.removeMember(member.id);
           if (error) {
             alert("ทำรายการไม่สำเร็จ: " + error.message);

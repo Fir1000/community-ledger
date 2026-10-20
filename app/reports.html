@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
+  <script src="/js/theme.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>รายงาน - Daily Fir</title>
   <link rel="manifest" href="/manifest.json" />
@@ -20,7 +21,7 @@
       <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
       <a href="/app/reports.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
       <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>เกี่ยวกับตัวเอง</span></a>
+      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
     </aside>
 
     <main class="main" x-data="reportsPage()" x-init="init()">
@@ -157,10 +158,10 @@
     <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
     <a href="/app/reports.html" class="active"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
     <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตัวเอง</span></a>
+    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="/js/config.js"></script>
   <script src="/js/supabaseClient.js"></script>
   <script src="/js/auth.js"></script>
@@ -168,7 +169,7 @@
   <script src="/js/db.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/guard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js" defer></script>
   <script src="/js/pwa.js"></script>
   <script>
     function reportsPage() {
@@ -226,7 +227,7 @@
         get categoryBreakdown() {
           const map = {};
           this.results.forEach((t) => {
-            const key = t.category_id || "none";
+            const key = t.type + ":" + (t.category_id || "none");
             if (!map[key]) {
               map[key] = {
                 name: t.categories ? t.categories.name : "ไม่ระบุหมวดหมู่",

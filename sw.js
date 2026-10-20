@@ -1,4 +1,4 @@
-const CACHE_NAME = "community-ledger-v8";
+const CACHE_NAME = "community-ledger-v15";
 
 const PRECACHE_URLS = [
   "/",
@@ -21,6 +21,7 @@ const PRECACHE_URLS = [
   "/js/app.js",
   "/js/guard.js",
   "/js/pwa.js",
+  "/js/theme.js",
   "/manifest.json",
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png",

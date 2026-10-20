@@ -1,5 +1,5 @@
-// จัดการ "ชุมชนที่กำลังใช้งานอยู่" (current community) ของผู้ใช้
-// ผู้ใช้หนึ่งคนอาจอยู่หลายชุมชนได้ในอนาคต แต่ตอนนี้ MVP เลือกใช้ชุมชนแรกที่พบก่อน
+// จัดการ "บัญชีที่กำลังใช้งานอยู่" (current community) ของผู้ใช้
+// ผู้ใช้หนึ่งคนอาจอยู่หลายบัญชีได้ในอนาคต แต่ตอนนี้ MVP เลือกใช้บัญชีแรกที่พบก่อน
 
 const Community = {
   async getMyCommunities() {
@@ -46,7 +46,7 @@ const Community = {
   },
 
   // เรียกในทุกหน้า /app หลัง requireAuth() สำเร็จ
-  // ถ้ายังไม่มีชุมชน -> ส่งไปหน้า onboarding, คืนค่า community_id ถ้ามีแล้ว
+  // ถ้ายังไม่มีบัญชี -> ส่งไปหน้า onboarding, คืนค่า community_id ถ้ามีแล้ว
   async requireCommunity() {
     let currentId = this.getCurrentId();
 
@@ -56,13 +56,16 @@ const Community = {
       return null;
     }
 
-    // ถ้า current_community_id ที่บันทึกไว้ไม่ตรงกับชุมชนที่เป็นสมาชิกอยู่จริง ให้ใช้อันแรกแทน
-    const stillMember = data.some((m) => m.community_id === currentId);
-    if (!stillMember) {
-      currentId = data[0].community_id;
+    // ถ้า current_community_id ที่บันทึกไว้ไม่ตรงกับบัญชีที่เป็นสมาชิกอยู่จริง ให้ใช้อันแรกแทน
+    let membership = data.find((m) => m.community_id === currentId);
+    if (!membership) {
+      membership = data[0];
+      currentId = membership.community_id;
       this.setCurrentId(currentId);
     }
 
+    // เก็บ role + ข้อมูลบัญชีไว้ให้ guard.js ใช้ต่อ ไม่ต้อง query ซ้ำ
+    this.currentMembership = membership;
     return currentId;
   },
 };

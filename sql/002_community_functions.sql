@@ -41,7 +41,7 @@ begin
     select 1 from public.community_members
     where community_id = v_community.id and user_id = auth.uid()
   ) then
-    raise exception 'คุณเป็นสมาชิกชุมชนนี้อยู่แล้ว';
+    raise exception 'คุณเป็นสมาชิกบัญชีนี้อยู่แล้ว';
   end if;
 
   insert into public.community_members (community_id, user_id, role)

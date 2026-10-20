@@ -10,10 +10,11 @@ const DB = {
     type,
     search,
     limit,
+    columns = "*, categories(id, name, icon, color, type)",
   } = {}) {
     let query = window.sb
       .from("transactions")
-      .select("*, categories(id, name, icon, color, type)")
+      .select(columns)
       .eq("community_id", communityId)
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false });
@@ -73,7 +74,6 @@ const DB = {
       .from("categories")
       .select("*")
       .or(`community_id.is.null,community_id.eq.${communityId}`)
-      .order("type")
       .order("name");
   },
 

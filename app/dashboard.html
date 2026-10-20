@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
+  <script src="/js/theme.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>สรุปยอด - Daily Fir</title>
   <link rel="manifest" href="/manifest.json" />
@@ -20,7 +21,7 @@
       <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
       <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
       <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>เกี่ยวกับตัวเอง</span></a>
+      <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
     </aside>
 
     <main class="main" x-data="dashboardPage()" x-init="init()">
@@ -34,7 +35,7 @@
         <p class="text-muted" style="margin:0; font-size:0.85rem;">ยอดเงินคงเหลือทั้งหมด</p>
         <p class="hero-amount" x-text="formatCurrency(startingBalance + previousBalance + balance)"></p>
         <p class="text-muted" style="margin:2px 0 0; font-size:0.75rem;" x-show="startingBalance !== 0">
-          (รวมยอดเริ่มต้นจากหน้า "เกี่ยวกับตัวเอง" <span x-text="formatCurrency(startingBalance)"></span>)
+          (รวมยอดเริ่มต้นจากหน้า "ตั้งค่า" <span x-text="formatCurrency(startingBalance)"></span>)
         </p>
 
         <div class="hero-split">
@@ -70,7 +71,7 @@
 
         <div class="chip-row">
           <button class="chip" :class="trendRange === '1d' ? 'active' : ''" @click="setTrendRange('1d')">1 วัน</button>
-          <button class="chip" :class="trendRange === '1m' ? 'active' : ''" @click="setTrendRange('1m')">1 เดือน</button>
+          <button class="chip" :class="trendRange === '1m' ? 'active' : ''" @click="setTrendRange('1m')">30 วัน</button>
           <button class="chip" :class="trendRange === '1y' ? 'active' : ''" @click="setTrendRange('1y')">1 ปี</button>
         </div>
 
@@ -94,7 +95,6 @@
 
       <div class="card">
         <p class="text-muted" style="font-weight:600;">ความถี่ (แต่ละรายการที่บันทึก)</p>
-        <p class="text-muted" style="font-size:0.8rem; margin-top:-6px;">แต่ละยอดของเส้น = 1 รายการที่บันทึกไว้ตามจำนวนเงินจริง เส้นสีเขียวขึ้น = รายรับ, เส้นสีแดงลง = รายจ่าย (เทียบกับเส้น 0 ตรงกลาง)</p>
 
         <div x-show="trendLoading" class="empty-state">กำลังโหลด...</div>
         <div style="position:relative; height:280px;" x-show="!trendLoading && trendHasData">
@@ -106,7 +106,7 @@
       <div class="card">
         <p class="text-muted">สัดส่วนรายรับกับรายจ่าย</p>
         <div x-show="loading" class="empty-state">กำลังโหลด...</div>
-        <div style="position:relative; height:260px;" x-show="!loading && (totalIncome > 0 || totalExpense > 0)">
+        <div style="position:relative; height:150px;" x-show="!loading && (totalIncome > 0 || totalExpense > 0)">
           <canvas id="incomeExpenseChart"></canvas>
         </div>
         <div class="empty-state" x-show="!loading && totalIncome === 0 && totalExpense === 0">ยังไม่มีรายการเดือนนี้</div>
@@ -115,8 +115,18 @@
       <div class="card">
         <p class="text-muted">แยกหมวดหมู่รายรับ</p>
         <div x-show="loading" class="empty-state">กำลังโหลด...</div>
-        <div style="position:relative; height:260px;" x-show="!loading && totalIncome > 0">
-          <canvas id="incomeCategoryChart"></canvas>
+        <div class="donut-layout" x-show="!loading && totalIncome > 0">
+          <div class="donut-chart"><canvas id="incomeCategoryChart"></canvas></div>
+          <div class="donut-legend">
+            <template x-for="s in incomeLegend" :key="s.label">
+              <div class="donut-legend-row">
+                <span class="donut-legend-dot" :style="'background:' + s.color"></span>
+                <span class="donut-legend-name" x-text="s.label"></span>
+                <span class="donut-legend-amount" x-text="formatCurrency(s.value)"></span>
+                <span class="donut-legend-pct" x-text="s.pct + '%'"></span>
+              </div>
+            </template>
+          </div>
         </div>
         <div class="empty-state" x-show="!loading && totalIncome === 0">ยังไม่มีรายรับเดือนนี้</div>
       </div>
@@ -124,8 +134,18 @@
       <div class="card">
         <p class="text-muted">แยกหมวดหมู่รายจ่าย</p>
         <div x-show="loading" class="empty-state">กำลังโหลด...</div>
-        <div style="position:relative; height:260px;" x-show="!loading && totalExpense > 0">
-          <canvas id="expenseCategoryChart"></canvas>
+        <div class="donut-layout" x-show="!loading && totalExpense > 0">
+          <div class="donut-chart"><canvas id="expenseCategoryChart"></canvas></div>
+          <div class="donut-legend">
+            <template x-for="s in expenseLegend" :key="s.label">
+              <div class="donut-legend-row">
+                <span class="donut-legend-dot" :style="'background:' + s.color"></span>
+                <span class="donut-legend-name" x-text="s.label"></span>
+                <span class="donut-legend-amount" x-text="formatCurrency(s.value)"></span>
+                <span class="donut-legend-pct" x-text="s.pct + '%'"></span>
+              </div>
+            </template>
+          </div>
         </div>
         <div class="empty-state" x-show="!loading && totalExpense === 0">ยังไม่มีรายจ่ายเดือนนี้</div>
       </div>
@@ -173,10 +193,10 @@
     <a href="/app/categories.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>หมวดหมู่</span></a>
     <a href="/app/reports.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>รายงาน</span></a>
     <a href="/app/members.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>สมาชิก</span></a>
-    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตัวเอง</span></a>
+    <a href="/app/profile.html"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>ตั้งค่า</span></a>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0"></script>
   <script src="/js/config.js"></script>
   <script src="/js/supabaseClient.js"></script>
   <script src="/js/auth.js"></script>
@@ -184,8 +204,8 @@
   <script src="/js/db.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/guard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js" defer></script>
   <script src="/js/pwa.js"></script>
   <script>
     function dashboardPage() {
@@ -205,6 +225,8 @@
         incomeExpenseChartInstance: null,
         incomeCategoryChartInstance: null,
         expenseCategoryChartInstance: null,
+        incomeLegend: [],
+        expenseLegend: [],
         trendRange: "1y",
         trendRequestId: 0,
         trendLoading: true,
@@ -219,9 +241,7 @@
 
         async init() {
           if (window.CURRENT_COMMUNITY_ID) {
-            await this.loadData();
-            await this.loadTrendData();
-            await this.loadStartingBalance();
+            await Promise.all([this.loadData(), this.loadTrendData(), this.loadStartingBalance()]);
           } else {
             document.addEventListener("app:ready", () => {
               this.loadData();
@@ -273,9 +293,11 @@
               startDate,
               endDate,
             }),
+            // ยอดสะสมทั้งหมดก่อนเดือนนี้ ใช้แค่ประเภท/จำนวน/ช่องทาง ไม่ต้องดึงทุกคอลัมน์และหมวดหมู่
             DB.listTransactions({
               communityId: window.CURRENT_COMMUNITY_ID,
               endDate: prevEndDate,
+              columns: "type, amount, payment_method",
             }),
           ]);
 
@@ -313,7 +335,7 @@
 
           const breakdownMap = {};
           data.forEach((t) => {
-            const key = t.category_id || "none";
+            const key = t.type + ":" + (t.category_id || "none");
             if (!breakdownMap[key]) {
               breakdownMap[key] = {
                 name: t.categories ? t.categories.name : "ไม่ระบุหมวดหมู่",
@@ -334,6 +356,18 @@
           });
         },
 
+        // สีหมวดหมู่ 8 สี เรียงลำดับตายตัว (ผ่านการตรวจสำหรับคนตาบอดสีทั้งโหมดสว่าง/มืด)
+        // เกิน 8 หมวดจะรวมที่เหลือเป็น "อื่นๆ" สีเทา แทนที่จะวนสีซ้ำ
+        categoryPalette() {
+          return AppTheme.isDark()
+            ? ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+            : ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+        },
+
+        cssVar(name) {
+          return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        },
+
         renderIncomeExpenseChart() {
           if (this.totalIncome === 0 && this.totalExpense === 0) return;
 
@@ -341,92 +375,168 @@
           if (!ctx || typeof Chart === "undefined") return;
           if (this.incomeExpenseChartInstance) this.incomeExpenseChartInstance.destroy();
 
+          const formatCurrency = this.formatCurrency;
+          const textColor = this.cssVar("--color-text");
+          const values = [this.totalIncome, this.totalExpense];
+          const colors = AppTheme.isDark() ? ["#3fb37a", "#ef6b5d"] : ["#16a34a", "#c0392b"];
+
+          // เขียนยอดเงินไว้ท้ายแท่ง อ่านได้ทันทีไม่ต้อง hover
+          const valueLabels = {
+            id: "valueLabels",
+            afterDatasetsDraw(chart) {
+              const c = chart.ctx;
+              const meta = chart.getDatasetMeta(0);
+              c.save();
+              c.font = "600 13px 'IBM Plex Sans Thai', sans-serif";
+              c.textBaseline = "middle";
+              meta.data.forEach((bar, i) => {
+                const text = formatCurrency(values[i]);
+                const w = c.measureText(text).width;
+                const fitsOutside = bar.x + 8 + w < chart.chartArea.right;
+                c.textAlign = fitsOutside ? "left" : "right";
+                c.fillStyle = fitsOutside ? textColor : "#fff";
+                c.fillText(text, fitsOutside ? bar.x + 8 : bar.x - 8, bar.y);
+              });
+              c.restore();
+            },
+          };
+
           this.incomeExpenseChartInstance = new Chart(ctx, {
             type: "bar",
             data: {
               labels: ["รายรับ", "รายจ่าย"],
               datasets: [
                 {
-                  data: [this.totalIncome, this.totalExpense],
-                  backgroundColor: ["#16a34a", "#c0392b"],
+                  data: values,
+                  backgroundColor: colors,
+                  hoverBackgroundColor: colors,
+                  borderRadius: 6,
+                  borderSkipped: "start",
+                  barThickness: 36,
                 },
               ],
             },
             options: {
               indexAxis: "y",
               maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { x: { beginAtZero: true } },
+              layout: { padding: { right: 8 } },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: { label: (item) => formatCurrency(item.parsed.x) },
+                },
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  border: { display: false },
+                  grid: { color: AppTheme.gridColor() },
+                  ticks: {
+                    maxTicksLimit: 5,
+                    callback: (v) => (v >= 1000 ? (v / 1000).toLocaleString("th-TH") + "k" : v),
+                  },
+                },
+                y: {
+                  border: { display: false },
+                  grid: { display: false },
+                  ticks: { font: { size: 13, weight: "600" } },
+                },
+              },
             },
+            plugins: [valueLabels],
+          });
+        },
+
+        renderCategoryDoughnut(canvasId, instanceKey, type, legendKey) {
+          const cats = this.categoryBreakdown.filter((c) => c.type === type);
+          if (cats.length === 0) return;
+
+          const ctx = document.getElementById(canvasId);
+          if (!ctx || typeof Chart === "undefined") return;
+          if (this[instanceKey]) this[instanceKey].destroy();
+
+          const palette = this.categoryPalette();
+          const slices = cats.slice(0, palette.length).map((c, i) => ({
+            label: (c.icon ? c.icon + " " : "") + c.name,
+            value: c.total,
+            color: palette[i],
+          }));
+          if (cats.length > palette.length) {
+            slices[palette.length - 1] = {
+              label: "อื่นๆ",
+              value: cats.slice(palette.length - 1).reduce((sum, c) => sum + c.total, 0),
+              color: AppTheme.isDark() ? "#6b7570" : "#9aa29d",
+            };
+          }
+
+          const total = slices.reduce((sum, s) => sum + s.value, 0);
+          const pct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
+          const formatCurrency = this.formatCurrency;
+          this[legendKey] = slices.map((s) => ({ ...s, pct: pct(s.value) }));
+          const surface = this.cssVar("--color-card-bg");
+          const textColor = this.cssVar("--color-text");
+          const mutedColor = this.cssVar("--color-muted");
+
+          // ยอดรวมกลางวงโดนัท
+          const centerTotal = {
+            id: "centerTotal",
+            afterDraw(chart) {
+              const meta = chart.getDatasetMeta(0);
+              if (!meta.data.length) return;
+              const { x, y } = meta.data[0];
+              const c = chart.ctx;
+              c.save();
+              c.textAlign = "center";
+              c.textBaseline = "middle";
+              c.fillStyle = mutedColor;
+              c.font = "500 12px 'IBM Plex Sans Thai', sans-serif";
+              c.fillText(type === "income" ? "รายรับรวม" : "รายจ่ายรวม", x, y - 12);
+              c.fillStyle = textColor;
+              c.font = "700 16px 'IBM Plex Sans Thai', sans-serif";
+              c.fillText(formatCurrency(total), x, y + 10);
+              c.restore();
+            },
+          };
+
+          this[instanceKey] = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: slices.map((s) => s.label),
+              datasets: [
+                {
+                  data: slices.map((s) => s.value),
+                  backgroundColor: slices.map((s) => s.color),
+                  borderColor: surface,
+                  borderWidth: 2,
+                  borderRadius: 4,
+                  hoverOffset: 6,
+                },
+              ],
+            },
+            options: {
+              maintainAspectRatio: false,
+              cutout: "68%",
+              layout: { padding: 6 },
+              plugins: {
+                // ใช้ตารางคำอธิบายแบบ HTML ข้างกราฟแทน (donut-legend)
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (item) => ` ${formatCurrency(item.parsed)} (${pct(item.parsed)}%)`,
+                  },
+                },
+              },
+            },
+            plugins: [centerTotal],
           });
         },
 
         renderIncomeCategoryChart() {
-          const incomeCats = this.categoryBreakdown.filter((c) => c.type === "income");
-          if (incomeCats.length === 0) return;
-
-          const ctx = document.getElementById("incomeCategoryChart");
-          if (!ctx || typeof Chart === "undefined") return;
-          if (this.incomeCategoryChartInstance) this.incomeCategoryChartInstance.destroy();
-
-          this.incomeCategoryChartInstance = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-              labels: incomeCats.map((c) => c.name),
-              datasets: [
-                {
-                  data: incomeCats.map((c) => c.total),
-                  backgroundColor: [
-                    "#16a34a",
-                    "#2f7d5f",
-                    "#3498db",
-                    "#9b59b6",
-                    "#e6a23c",
-                    "#1abc9c",
-                    "#7f8c8d",
-                  ],
-                },
-              ],
-            },
-            options: {
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "bottom" } },
-            },
-          });
+          this.renderCategoryDoughnut("incomeCategoryChart", "incomeCategoryChartInstance", "income", "incomeLegend");
         },
 
         renderExpenseCategoryChart() {
-          const expenseCats = this.categoryBreakdown.filter((c) => c.type === "expense");
-          if (expenseCats.length === 0) return;
-
-          const ctx = document.getElementById("expenseCategoryChart");
-          if (!ctx || typeof Chart === "undefined") return;
-          if (this.expenseCategoryChartInstance) this.expenseCategoryChartInstance.destroy();
-
-          this.expenseCategoryChartInstance = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-              labels: expenseCats.map((c) => c.name),
-              datasets: [
-                {
-                  data: expenseCats.map((c) => c.total),
-                  backgroundColor: [
-                    "#c0392b",
-                    "#e67e22",
-                    "#e6a23c",
-                    "#3498db",
-                    "#9b59b6",
-                    "#1abc9c",
-                    "#7f8c8d",
-                  ],
-                },
-              ],
-            },
-            options: {
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "bottom" } },
-            },
-          });
+          this.renderCategoryDoughnut("expenseCategoryChart", "expenseCategoryChartInstance", "expense", "expenseLegend");
         },
 
         async setTrendRange(range) {
@@ -662,10 +772,10 @@
               scales: {
                 y: {
                   beginAtZero: true,
-                  grid: { color: "rgba(0, 0, 0, 0.08)" },
+                  grid: { color: AppTheme.gridColor() },
                 },
                 x: {
-                  grid: { color: "rgba(0, 0, 0, 0.08)" },
+                  grid: { color: AppTheme.gridColor() },
                   ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 10 },
                 },
               },
@@ -694,55 +804,75 @@
           const pointColors = values.map((v) => (v >= 0 ? "#16a34a" : "#c0392b"));
           const maxAbs = Math.max(...values.map((v) => Math.abs(v)), 1) * 1.1;
 
-          // มุมมอง "1 วัน" ใช้แกน X แบบเวลาจริง (นาทีนับจากเที่ยงคืน) ตรึงช่วง 00:00-23:00 เสมอ
-          // ไม่งั้นถ้าใช้ label ตามลำดับรายการ ระยะห่างบนกราฟจะไม่ตรงกับเวลาจริงที่ห่างกัน
-          let labels;
-          let dataPoints;
-          if (isDayView) {
-            labels = undefined;
-            dataPoints = transactions.map((t, i) => {
-              const created = new Date(t.created_at);
-              return { x: created.getHours() * 60 + created.getMinutes(), y: values[i] };
-            });
-          } else {
-            labels = transactions.map((t) => {
-              const [, month, day] = t.transaction_date.split("-").map(Number);
-              if (this.trendRange === "1y") return monthNames[month - 1];
-              return `${day} ${monthNames[month - 1]}`;
-            });
-            dataPoints = values;
-          }
+          // ป้ายแกน X ของแต่ละรายการ (ช่วงที่ไม่ใช่ 1 วัน): วันที่ที่จด
+          const labels = transactions.map((t) => {
+            const [, month, day] = t.transaction_date.split("-").map(Number);
+            if (this.trendRange === "1y") return monthNames[month - 1];
+            return `${day} ${monthNames[month - 1]}`;
+          });
+
+          // แต่ละรายการ = 1 ยอดแหลมแยกกัน: ขึ้นจาก 0 ไปตามจำนวนเงิน แล้วกลับลงมา 0 ก่อนรายการถัดไป
+          // มุมมอง 1 วัน: x = นาทีนับจากเที่ยงคืน (แกนเวลาจริง 00:00-24:00)
+          // รายการที่จดใกล้กันมากจะถูกเลื่อนไปทางขวาเล็กน้อยเพื่อไม่ให้ยอดทับกัน
+          // ช่วงอื่น: รายการที่ i อยู่ที่ x = i + 1 เรียงตามลำดับที่จด
+          const spikeHalfWidth = isDayView ? 6 : 0.35;
+          const xs = [];
+          transactions.forEach((t, i) => {
+            if (!isDayView) {
+              xs.push(i + 1);
+              return;
+            }
+            const created = new Date(t.created_at);
+            const minute = created.getHours() * 60 + created.getMinutes();
+            const minX = i > 0 ? xs[i - 1] + spikeHalfWidth * 2 : spikeHalfWidth;
+            xs.push(Math.max(minute, minX));
+          });
+          const spikeLine = values.flatMap((v, i) => [
+            { x: xs[i] - spikeHalfWidth, y: 0 },
+            { x: xs[i], y: v },
+            { x: xs[i] + spikeHalfWidth, y: 0 },
+          ]);
+          const peaks = values.map((v, i) => ({ x: xs[i], y: v }));
 
           this.xrayChartInstance = new Chart(ctx, {
             type: "line",
             data: {
-              labels,
               datasets: [
                 {
                   label: "จำนวนเงินต่อรายการ",
-                  data: dataPoints,
+                  data: spikeLine,
                   borderColor: "#5b655f",
                   borderWidth: 2.5,
                   segment: {
-                    borderColor: (ctx) => (ctx.p1.parsed.y >= 0 ? "#16a34a" : "#c0392b"),
+                    borderColor: (ctx) => (ctx.p0.parsed.y + ctx.p1.parsed.y >= 0 ? "#16a34a" : "#c0392b"),
                   },
+                  pointRadius: 0,
+                  pointHoverRadius: 0,
+                  tension: 0,
+                  fill: false,
+                },
+                {
+                  // จุดยอดของแต่ละรายการ ใช้สำหรับ hover/tooltip เท่านั้น
+                  label: "ยอด",
+                  data: peaks,
+                  showLine: false,
                   pointBackgroundColor: pointColors,
                   pointBorderColor: pointColors,
                   pointRadius: 0,
                   pointHoverRadius: 4,
-                  tension: 0,
-                  fill: false,
                 },
               ],
             },
             options: {
               maintainAspectRatio: false,
-              interaction: { mode: "index", intersect: false },
+              interaction: { mode: "nearest", axis: "x", intersect: false },
               plugins: {
                 legend: { display: false },
                 tooltip: {
+                  filter: (item) => item.datasetIndex === 1,
                   callbacks: {
                     title: (items) => {
+                      if (!items.length) return "";
                       const t = transactions[items[0].dataIndex];
                       return (t.categories ? t.categories.icon + " " + t.categories.name : "ไม่ระบุหมวดหมู่") + (t.note ? " · " + t.note : "");
                     },
@@ -759,7 +889,7 @@
                   min: -maxAbs,
                   max: maxAbs,
                   grid: {
-                    color: (ctx) => (ctx.tick.value === 0 ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.08)"),
+                    color: (ctx) => (ctx.tick.value === 0 ? AppTheme.axisColor() : AppTheme.gridColor()),
                     lineWidth: (ctx) => (ctx.tick.value === 0 ? 2 : 1),
                   },
                   ticks: {
@@ -778,8 +908,16 @@
                       },
                     }
                   : {
+                      type: "linear",
+                      min: 0.5,
+                      max: transactions.length + 0.5,
                       grid: { display: false },
-                      ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 10 },
+                      ticks: {
+                        precision: 0,
+                        maxRotation: 0,
+                        maxTicksLimit: 10,
+                        callback: (v) => (Number.isInteger(v) && labels[v - 1] ? labels[v - 1] : ""),
+                      },
                     },
               },
             },
