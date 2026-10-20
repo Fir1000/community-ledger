@@ -289,6 +289,14 @@
 
         async toggleEditPermission(member, checkbox) {
           const canEdit = checkbox.checked;
+          const name = member.profiles?.full_name || "สมาชิกคนนี้";
+          const question = canEdit
+            ? `อนุญาตให้ "${name}" บันทึกรายรับ-รายจ่าย?`
+            : `ปิดสิทธิ์บันทึกรายรับ-รายจ่ายของ "${name}"? (จะดูได้อย่างเดียว)`;
+          if (!confirm(question)) {
+            checkbox.checked = !canEdit;
+            return;
+          }
           const { error } = await DB.updateMemberEditPermission(member.id, canEdit);
           if (error) {
             checkbox.checked = !canEdit;
