@@ -45,7 +45,7 @@
         <template x-for="t in transactions" :key="t.id">
           <div class="transaction-row" @click="openEditForm(t)">
             <div>
-              <div x-text="(t.categories ? t.categories.icon + ' ' + t.categories.name : 'ไม่ระบุหมวดหมู่') + (t.payment_method === 'transfer' ? ' · 🏦 โอน' : ' · 💵 สด')"></div>
+              <div x-text="AppUtils.categoryLabel(t.categories) + (t.payment_method === 'transfer' ? ' · 🏦 โอน' : ' · 💵 สด')"></div>
               <div class="text-muted" style="font-size:0.8rem;" x-text="formatDate(t.transaction_date) + (t.note ? ' · ' + t.note : '')"></div>
             </div>
             <div :class="t.type === 'income' ? 'amount-income' : 'amount-expense'" x-text="(t.type === 'income' ? '+' : '-') + formatCurrency(t.amount)"></div>
@@ -75,7 +75,7 @@
             <select x-model="form.category_id">
               <option value="">-- เลือกหมวดหมู่ --</option>
               <template x-for="c in categories" :key="c.id">
-                <option :value="c.id" x-text="c.icon + ' ' + c.name"></option>
+                <option :value="c.id" x-text="AppUtils.categoryLabel(c)"></option>
               </template>
             </select>
           </div>

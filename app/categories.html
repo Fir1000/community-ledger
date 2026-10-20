@@ -30,7 +30,13 @@
         <a href="#" data-logout class="logout-link">ออกจากระบบ</a>
       </div>
 
-      <h2>หมวดหมู่</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2>หมวดหมู่</h2>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:var(--color-muted); cursor:pointer;">
+          แสดงไอคอน
+          <button type="button" class="switch" :class="showIcons && 'on'" role="switch" :aria-checked="showIcons" aria-label="แสดงไอคอน" @click="toggleIcons()"></button>
+        </label>
+      </div>
 
       <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
 
@@ -39,7 +45,7 @@
           <div class="card">
             <template x-for="c in categories" :key="c.id">
               <div class="transaction-row">
-                <span x-text="c.icon + ' ' + c.name"></span>
+                <span x-text="showIcons && c.icon ? c.icon + ' ' + c.name : c.name"></span>
                 <span>
                   <span x-show="c.community_id === null" class="text-muted" style="font-size:0.8rem;">ระบบ</span>
                   <template x-if="c.community_id !== null">
@@ -117,6 +123,12 @@
         loading: true,
         saving: false,
         categories: [],
+        showIcons: AppUtils.showCategoryIcons(),
+
+        toggleIcons() {
+          this.showIcons = !this.showIcons;
+          AppUtils.setShowCategoryIcons(this.showIcons);
+        },
         showForm: false,
         editingId: null,
         errorMsg: "",

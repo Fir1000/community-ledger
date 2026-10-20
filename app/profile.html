@@ -30,15 +30,15 @@
         <a href="#" data-logout class="logout-link">ออกจากระบบ</a>
       </div>
 
-      <h2>ตั้งค่า 👤</h2>
-
-      <div class="card" style="display:flex; align-items:center; justify-content:space-between;">
-        <div>
-          <div style="font-weight:600;">🌙 ดาร์กโหมด</div>
-          <div class="text-muted" style="font-size:0.85rem;">ธีมสีเข้ม สบายตาตอนกลางคืน</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2>ตั้งค่า 👤</h2>
+        <div style="display:flex; align-items:center; gap:8px; font-size:1.1rem;">
+          <span :style="darkMode ? 'opacity:0.35' : ''" aria-hidden="true">☀️</span>
+          <button type="button" class="switch" :class="darkMode && 'on'" role="switch" :aria-checked="darkMode" aria-label="ดาร์กโหมด" @click="toggleDarkMode()"></button>
+          <span :style="darkMode ? '' : 'opacity:0.35'" aria-hidden="true">🌙</span>
         </div>
-        <button type="button" class="switch" :class="darkMode && 'on'" role="switch" :aria-checked="darkMode" aria-label="ดาร์กโหมด" @click="toggleDarkMode()"></button>
       </div>
+
 
       <p class="text-muted">ข้อมูลการเงินเริ่มต้นของฉัน (ส่วนตัว ไม่แชร์ให้สมาชิกคนอื่นเห็น)</p>
 

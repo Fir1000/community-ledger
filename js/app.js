@@ -15,4 +15,25 @@ const AppUtils = {
       day: "numeric",
     }).format(new Date(dateStr));
   },
+
+  // สวิตช์ "แสดงไอคอน" ในหน้าหมวดหมู่ (เก็บในเครื่องนี้) ปิดแล้วซ่อน emoji ของทุกหมวดทั่วทั้งแอป
+  showCategoryIcons() {
+    try {
+      return localStorage.getItem("show_category_icons") !== "0";
+    } catch {
+      return true;
+    }
+  },
+
+  setShowCategoryIcons(show) {
+    try {
+      localStorage.setItem("show_category_icons", show ? "1" : "0");
+    } catch {}
+  },
+
+  // ชื่อหมวดหมู่สำหรับแสดงผล (มี/ไม่มี emoji ตามสวิตช์)
+  categoryLabel(category) {
+    if (!category) return "ไม่ระบุหมวดหมู่";
+    return category.icon && this.showCategoryIcons() ? category.icon + " " + category.name : category.name;
+  },
 };
