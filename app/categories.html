@@ -48,7 +48,7 @@
                 <span x-text="showIcons && c.icon ? c.icon + ' ' + c.name : c.name"></span>
                 <span>
                   <span x-show="c.community_id === null" class="text-muted" style="font-size:0.8rem;">ระบบ</span>
-                  <template x-if="c.community_id !== null">
+                  <template x-if="c.community_id !== null && canEdit">
                     <span>
                       <a href="#" @click.prevent="openEdit(c)" style="margin-right:10px;">แก้ไข</a>
                       <a href="#" @click.prevent="handleDelete(c)" style="color:#c0392b;">ลบ</a>
@@ -57,7 +57,8 @@
                 </span>
               </div>
             </template>
-            <button class="btn btn-primary" style="margin-top:12px;" @click="openAdd()">+ เพิ่มหมวดหมู่</button>
+            <button x-show="canEdit" class="btn btn-primary" style="margin-top:12px;" @click="openAdd()">+ เพิ่มหมวดหมู่</button>
+            <p x-show="!canEdit" class="text-muted" style="font-size:0.85rem; margin-bottom:0;">ผู้ดูแลยังไม่อนุญาตให้คุณแก้ไข (ดูได้อย่างเดียว)</p>
           </div>
         </div>
       </template>
@@ -124,6 +125,7 @@
         saving: false,
         categories: [],
         showIcons: AppUtils.showCategoryIcons(),
+        canEdit: true,
 
         toggleIcons() {
           this.showIcons = !this.showIcons;
@@ -143,6 +145,8 @@
         },
 
         async loadCategories() {
+          // สิทธิ์เดียวกับรายรับ-รายจ่าย: ไม่ได้รับอนุญาต = ดูหมวดหมู่ได้อย่างเดียว
+          this.canEdit = window.CAN_EDIT_TRANSACTIONS !== false;
           this.loading = true;
           const { data, error } = await DB.listCategories(window.CURRENT_COMMUNITY_ID);
           if (!error) this.categories = data;
