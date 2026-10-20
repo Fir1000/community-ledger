@@ -153,8 +153,8 @@
       <div class="card" x-show="!loading && categoryBreakdown.some(c => c.type === 'income')">
         <p class="text-muted">สรุปรายรับตามหมวดหมู่</p>
         <template x-for="c in categoryBreakdown.filter(c => c.type === 'income')" :key="c.name">
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
-            <div style="min-width:0; padding-right:12px;"><div x-text="AppUtils.categoryLabel(c)"></div><div x-show="c.notes.length" class="text-muted" style="font-size:0.8rem; overflow-wrap:anywhere;" x-text="c.notes.join(' · ')"></div></div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--color-border);">
+            <div style="flex:1; min-width:0; padding-right:12px;"><div x-text="AppUtils.categoryLabel(c)"></div><template x-for="n in c.notes" :key="n.note"><div class="text-muted" style="display:flex; justify-content:space-between; gap:12px; font-size:0.8rem; margin-top:2px;"><span style="overflow-wrap:anywhere;" x-text="'• ' + n.note"></span><span style="white-space:nowrap; font-variant-numeric:tabular-nums;" x-text="formatCurrency(n.amount)"></span></div></template></div>
             <span class="amount-income" x-text="'+' + formatCurrency(c.total)"></span>
           </div>
         </template>
@@ -163,8 +163,8 @@
       <div class="card" x-show="!loading && categoryBreakdown.some(c => c.type === 'expense')">
         <p class="text-muted">สรุปรายจ่ายตามหมวดหมู่</p>
         <template x-for="c in categoryBreakdown.filter(c => c.type === 'expense')" :key="c.name">
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border);">
-            <div style="min-width:0; padding-right:12px;"><div x-text="AppUtils.categoryLabel(c)"></div><div x-show="c.notes.length" class="text-muted" style="font-size:0.8rem; overflow-wrap:anywhere;" x-text="c.notes.join(' · ')"></div></div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--color-border);">
+            <div style="flex:1; min-width:0; padding-right:12px;"><div x-text="AppUtils.categoryLabel(c)"></div><template x-for="n in c.notes" :key="n.note"><div class="text-muted" style="display:flex; justify-content:space-between; gap:12px; font-size:0.8rem; margin-top:2px;"><span style="overflow-wrap:anywhere;" x-text="'• ' + n.note"></span><span style="white-space:nowrap; font-variant-numeric:tabular-nums;" x-text="formatCurrency(n.amount)"></span></div></template></div>
             <span class="amount-expense" x-text="'-' + formatCurrency(c.total)"></span>
           </div>
         </template>
@@ -348,9 +348,13 @@
               };
             }
             breakdownMap[key].total += Number(t.amount);
-            // บันทึกเพิ่มเติมของแต่ละรายการในหมวดนี้ (ไม่ซ้ำกัน) แสดงใต้ชื่อหมวด
+            // บันทึกเพิ่มเติมพร้อมจำนวนเงิน แสดงใต้ชื่อหมวด (บันทึกเดียวกันรวมยอดเป็นแถวเดียว)
             const note = (t.note || "").trim();
-            if (note && !breakdownMap[key].notes.includes(note)) breakdownMap[key].notes.push(note);
+            if (note) {
+              const entry = breakdownMap[key].notes.find((n) => n.note === note);
+              if (entry) entry.amount += Number(t.amount);
+              else breakdownMap[key].notes.push({ note, amount: Number(t.amount) });
+            }
           });
           this.categoryBreakdown = Object.values(breakdownMap).sort((a, b) => b.total - a.total);
 
