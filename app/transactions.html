@@ -32,7 +32,10 @@
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>รายรับ-รายจ่าย</h2>
-        <input type="month" x-model="filterMonth" @change="loadTransactions()" style="padding:8px; border:1px solid var(--color-border); border-radius:8px;" />
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="month" x-model="filterMonth" @change="loadTransactions()" style="padding:8px; border:1px solid var(--color-border); border-radius:8px;" />
+          <button class="btn" x-show="isAdmin" x-cloak @click="openReset()" style="border:1px solid var(--color-danger); color:var(--color-danger); padding:8px 12px;">รีเซ็ต</button>
+        </div>
       </div>
 
       <div class="card" x-show="loading"><div class="empty-state">กำลังโหลด...</div></div>
@@ -54,6 +57,37 @@
       </div>
 
       <button class="fab" x-show="canEdit" @click="openAddForm('expense')">+</button>
+
+      <!-- Modal รีเซ็ตรายการ -->
+      <div class="modal-overlay" x-show="showReset" x-cloak @click.self="!resetting && (showReset = false)">
+        <div class="modal-card">
+          <h3>รีเซ็ตรายการ</h3>
+          <p class="text-muted" style="font-size:0.9rem;">รายการที่ลบ (รวมรูปใบเสร็จ) จะกู้คืนไม่ได้</p>
+
+          <div class="segmented">
+            <button type="button" :class="resetScope === 'month' ? 'active-expense' : ''" @click="resetScope = 'month'">เฉพาะเดือนนี้</button>
+            <button type="button" :class="resetScope === 'all' ? 'active-expense' : ''" @click="resetScope = 'all'">ทั้งหมด</button>
+          </div>
+
+          <p style="font-size:0.9rem; margin-top:12px;" x-text="resetScope === 'month'
+            ? 'จะลบทุกรายการของเดือน ' + monthLabel() + ' ในบัญชีนี้'
+            : 'จะลบทุกรายการทุกเดือนในบัญชีนี้'"></p>
+
+          <div class="form-group">
+            <label>พิมพ์คำว่า <b>ยืนยัน</b> เพื่อดำเนินการ</label>
+            <input type="text" x-model="resetConfirmText" placeholder="ยืนยัน" />
+          </div>
+
+          <p x-show="resetError" x-text="resetError" style="color:#c0392b; font-size:0.9rem;"></p>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn" style="flex:1; border:1px solid var(--color-border);" :disabled="resetting" @click="showReset = false">ยกเลิก</button>
+            <button class="btn btn-danger" style="flex:1;" :disabled="resetting || resetConfirmText.trim() !== 'ยืนยัน'" @click="doReset()">
+              <span x-text="resetting ? 'กำลังลบ...' : 'ลบรายการ'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Modal ฟอร์มเพิ่ม/แก้ไขรายการ -->
       <div class="modal-overlay" x-show="showForm" x-cloak @click.self="closeForm()">
@@ -161,6 +195,52 @@
         errorMsg: "",
         form: defaultTransactionForm(),
         canEdit: true,
+        isAdmin: false,
+        showReset: false,
+        resetScope: "month",
+        resetConfirmText: "",
+        resetting: false,
+        resetError: "",
+
+        monthRange() {
+          const [year, month] = this.filterMonth.split("-").map(Number);
+          const lastDay = new Date(year, month, 0).getDate();
+          return {
+            startDate: `${this.filterMonth}-01`,
+            endDate: `${this.filterMonth}-${String(lastDay).padStart(2, "0")}`,
+          };
+        },
+
+        monthLabel() {
+          const [year, month] = this.filterMonth.split("-").map(Number);
+          return new Date(year, month - 1, 1).toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+        },
+
+        openReset() {
+          this.resetScope = "month";
+          this.resetConfirmText = "";
+          this.resetError = "";
+          this.showReset = true;
+        },
+
+        async doReset() {
+          if (this.resetConfirmText.trim() !== "ยืนยัน") return;
+          this.resetting = true;
+          this.resetError = "";
+          const range = this.resetScope === "month" ? this.monthRange() : {};
+          const { data, error } = await DB.resetTransactions({
+            communityId: window.CURRENT_COMMUNITY_ID,
+            ...range,
+          });
+          this.resetting = false;
+          if (error) {
+            this.resetError = "ลบไม่สำเร็จ: " + error.message;
+            return;
+          }
+          this.showReset = false;
+          await this.loadTransactions();
+          alert(`ลบแล้ว ${data.count} รายการ`);
+        },
 
         async init() {
           if (window.CURRENT_COMMUNITY_ID) {
@@ -172,6 +252,7 @@
 
         async bootstrap() {
           this.canEdit = window.CAN_EDIT_TRANSACTIONS !== false;
+          this.isAdmin = window.IS_ADMIN === true;
           await this.loadCategories();
           await this.loadTransactions();
         },

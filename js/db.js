@@ -54,6 +54,34 @@ const DB = {
     return await window.sb.from("transactions").delete().eq("id", id);
   },
 
+  // ล้างรายการของบัญชี: ถ้าส่ง startDate/endDate จะลบเฉพาะช่วงนั้น ไม่ส่งคือลบทั้งหมด
+  // ลบรูปใบเสร็จที่ผูกอยู่ด้วย (best-effort: ถ้าลบรูปไม่สำเร็จ รายการก็ยังถูกลบ)
+  async resetTransactions({ communityId, startDate, endDate } = {}) {
+    const applyRange = (q) => {
+      q = q.eq("community_id", communityId);
+      if (startDate) q = q.gte("transaction_date", startDate);
+      if (endDate) q = q.lte("transaction_date", endDate);
+      return q;
+    };
+
+    const { data: rows, error: listError } = await applyRange(
+      window.sb.from("transactions").select("receipt_path")
+    );
+    if (listError) return { error: listError };
+
+    const { error, count } = await applyRange(
+      window.sb.from("transactions").delete({ count: "exact" })
+    );
+    if (error) return { error };
+
+    const paths = (rows || []).map((r) => r.receipt_path).filter(Boolean);
+    for (let i = 0; i < paths.length; i += 100) {
+      await window.sb.storage.from("receipts").remove(paths.slice(i, i + 100));
+    }
+
+    return { data: { count: count ?? rows.length } };
+  },
+
   async uploadReceipt(file, transactionId) {
     const path = `${window.CURRENT_COMMUNITY_ID}/${transactionId}-${Date.now()}-${file.name}`;
     const { error } = await window.sb.storage
