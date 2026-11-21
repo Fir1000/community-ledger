@@ -30,9 +30,9 @@
         <a href="#" data-logout class="logout-link">ออกจากระบบ</a>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <h2>รายรับ-รายจ่าย</h2>
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input type="month" x-model="filterMonth" @change="loadTransactions()" style="padding:8px; border:1px solid var(--color-border); border-radius:8px;" />
           <button class="btn" x-show="isAdmin" x-cloak @click="openReset()" style="border:1px solid var(--color-danger); color:var(--color-danger); padding:8px 12px;">รีเซ็ต</button>
         </div>
