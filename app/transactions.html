@@ -115,7 +115,7 @@
           </div>
 
           <div class="form-group">
-            <label>ช่องทาง</label>
+            <label>ช่องทาง <span x-show="!form.payment_method" style="color:var(--color-danger); font-weight:normal;">* กรุณาเลือก</span></label>
             <div class="segmented">
               <button type="button" :class="form.payment_method === 'cash' ? 'active-cash' : ''" @click="form.payment_method = 'cash'">💵 เงินสด</button>
               <button type="button" :class="form.payment_method === 'transfer' ? 'active-transfer' : ''" @click="form.payment_method = 'transfer'">🏦 เงินโอน</button>
@@ -142,7 +142,7 @@
 
           <div style="display:flex; gap:8px; margin-top:16px;">
             <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="closeForm()">ยกเลิก</button>
-            <button class="btn btn-primary" style="flex:1;" :disabled="saving" @click="submitForm()">
+            <button class="btn btn-primary" style="flex:1;" :disabled="saving || !form.payment_method" @click="submitForm()">
               <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
             </button>
           </div>
@@ -325,6 +325,10 @@
             this.errorMsg = "กรุณาเลือกหมวดหมู่";
             return;
           }
+          if (!this.form.payment_method) {
+            this.errorMsg = "กรุณาเลือกช่องทาง: เงินสด หรือ เงินโอน";
+            return;
+          }
 
           this.saving = true;
           const payload = {
@@ -398,7 +402,7 @@
         type: "expense",
         category_id: "",
         amount: "",
-        payment_method: "cash",
+        payment_method: "",
         note: "",
         transaction_date: new Date().toISOString().slice(0, 10),
         receipt_path: "",
