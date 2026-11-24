@@ -66,6 +66,42 @@
         </div>
       </div>
 
+      <p class="text-muted" style="font-weight:600; margin-bottom:8px;">รายจ่ายรายวัน</p>
+      <div class="card daily-card">
+        <div class="daily-tiles">
+          <div class="daily-tile daily-today">
+            <div class="daily-head">
+              <div>
+                <div class="daily-label">วันนี้</div>
+                <div class="daily-date" x-text="dayLabel(0)"></div>
+              </div>
+            </div>
+            <div class="daily-amount" x-text="loading ? '…' : formatCurrency(todayExpense)"></div>
+            <div class="daily-bar"><span :style="'width:' + dailyBarPct(todayExpense) + '%'"></span></div>
+          </div>
+          <div class="daily-tile">
+            <div class="daily-head">
+              <div>
+                <div class="daily-label">เมื่อวาน</div>
+                <div class="daily-date" x-text="dayLabel(-1)"></div>
+              </div>
+            </div>
+            <div class="daily-amount" x-text="loading ? '…' : formatCurrency(yesterdayExpense)"></div>
+            <div class="daily-bar"><span :style="'width:' + dailyBarPct(yesterdayExpense) + '%'"></span></div>
+          </div>
+        </div>
+        <div class="daily-compare" x-show="!loading && (todayExpense > 0 || yesterdayExpense > 0)"
+             :class="todayExpense > yesterdayExpense ? 'is-up' : (todayExpense < yesterdayExpense ? 'is-down' : '')">
+          <span x-text="todayExpense > yesterdayExpense ? '▲' : (todayExpense < yesterdayExpense ? '▼' : '=')"></span>
+          <span x-text="todayExpense === yesterdayExpense
+            ? 'วันนี้ใช้เท่ากับเมื่อวาน'
+            : (todayExpense > yesterdayExpense ? 'ใช้มากกว่าเมื่อวาน ' : 'ใช้น้อยกว่าเมื่อวาน ') + formatCurrency(Math.abs(todayExpense - yesterdayExpense))"></span>
+        </div>
+        <div class="daily-compare" x-show="!loading && todayExpense === 0 && yesterdayExpense === 0">
+          ยังไม่มีรายจ่ายทั้งวันนี้และเมื่อวาน 🎉
+        </div>
+      </div>
+
       <div class="card">
         <p class="text-muted" style="font-weight:600;">แนวโน้มรายรับ-รายจ่าย</p>
 
@@ -213,6 +249,8 @@
         loading: true,
         totalIncome: 0,
         totalExpense: 0,
+        todayExpense: 0,
+        yesterdayExpense: 0,
         balance: 0,
         previousBalance: 0,
         startingBalance: 0,
@@ -269,6 +307,17 @@
           this.startingBalance = this.startingCash + this.startingTransfer;
         },
 
+        dayLabel(offset) {
+          const d = new Date();
+          d.setDate(d.getDate() + offset);
+          return d.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
+        },
+
+        dailyBarPct(value) {
+          const max = Math.max(this.todayExpense, this.yesterdayExpense);
+          return max > 0 ? Math.round((value / max) * 100) : 0;
+        },
+
         get cashRemaining() {
           return this.startingCash + this.cashNet;
         },
@@ -299,7 +348,8 @@
             DB.listTransactions({
               communityId: window.CURRENT_COMMUNITY_ID,
               endDate: prevEndDate,
-              columns: "type, amount, payment_method",
+              // ต้องมีวันที่ด้วย เพราะ "เมื่อวาน" อาจอยู่เดือนก่อน (วันที่ 1)
+              columns: "type, amount, payment_method, transaction_date",
             }),
           ]);
 
@@ -328,6 +378,18 @@
           this.previousBalance = prevIncome - prevExpense;
 
           const allTimeData = prevData.concat(data);
+
+          // ใช้วันที่ตามเวลาเครื่อง (ไม่ใช่ UTC) ให้ตรงกับวันที่ที่ผู้ใช้บันทึก
+          const localDate = (d) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          const todayKey = localDate(now);
+          const yesterdayKey = localDate(new Date(year, now.getMonth(), now.getDate() - 1));
+          const expenseOn = (key) =>
+            allTimeData
+              .filter((t) => t.type === "expense" && t.transaction_date === key)
+              .reduce((sum, t) => sum + Number(t.amount), 0);
+          this.todayExpense = expenseOn(todayKey);
+          this.yesterdayExpense = expenseOn(yesterdayKey);
           this.cashNet = allTimeData
             .filter((t) => (t.payment_method || "cash") === "cash")
             .reduce((sum, t) => sum + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
