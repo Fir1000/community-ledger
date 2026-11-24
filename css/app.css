@@ -649,6 +649,95 @@ a:focus-visible {
   animation: slide-up 0.2s ease;
 }
 
+.modal-stack {
+  z-index: 40;
+}
+
+.input-with-btn {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-btn input {
+  flex: 1;
+  min-width: 0;
+}
+
+.icon-btn {
+  flex: none;
+  width: 46px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-input-bg);
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.calc-display {
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  text-align: right;
+  margin-bottom: 12px;
+}
+
+.calc-expr {
+  font-size: 1.6rem;
+  font-weight: 600;
+  word-break: break-all;
+  min-height: 2.2rem;
+}
+
+.calc-result {
+  color: var(--color-muted);
+  min-height: 1.4rem;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-key {
+  padding: 14px 0;
+  font-size: 1.25rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.calc-key:active {
+  transform: scale(0.96);
+}
+
+.calc-op {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+.calc-fn {
+  color: var(--color-muted);
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
