@@ -51,18 +51,18 @@
       </div>
 
       <p class="text-muted" style="font-weight:600; margin-bottom:8px;">สรุปเดือนนี้</p>
-      <div class="card" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; text-align:center;">
-        <div>
-          <p class="text-muted" style="margin:0; font-size:0.85rem;">รายรับ</p>
-          <p class="amount-income" style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalIncome)"></p>
+      <div class="card monthly-card">
+        <div class="monthly-tile">
+          <div class="monthly-label"><span class="monthly-dot dot-income"></span>รายรับ</div>
+          <div class="monthly-amount" x-text="formatCurrency(totalIncome)"></div>
         </div>
-        <div>
-          <p class="text-muted" style="margin:0; font-size:0.85rem;">รายจ่าย</p>
-          <p class="amount-expense" style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(totalExpense)"></p>
+        <div class="monthly-tile">
+          <div class="monthly-label"><span class="monthly-dot dot-expense"></span>รายจ่าย</div>
+          <div class="monthly-amount" x-text="formatCurrency(totalExpense)"></div>
         </div>
-        <div>
-          <p class="text-muted" style="margin:0; font-size:0.85rem;">คงเหลือ</p>
-          <p style="font-size:1.2rem; font-weight:700; margin:4px 0 0;" x-text="formatCurrency(balance)"></p>
+        <div class="monthly-tile monthly-balance">
+          <div class="monthly-label"><span class="monthly-dot dot-balance"></span>คงเหลือ</div>
+          <div class="monthly-amount" x-text="formatCurrency(balance)"></div>
         </div>
       </div>
 
