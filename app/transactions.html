@@ -169,8 +169,11 @@
 
       <!-- Modal เครื่องคิดเลข (ซ้อนบนฟอร์ม) -->
       <div class="modal-overlay modal-stack" x-show="showCalc" x-cloak @click.self="showCalc = false">
-        <div class="modal-card">
-          <h3>เครื่องคิดเลข</h3>
+        <div class="modal-card calc-card">
+          <div class="calc-header">
+            <h3>เครื่องคิดเลข</h3>
+            <button type="button" class="calc-close" @click="showCalc = false" aria-label="ปิด">✕</button>
+          </div>
           <div class="calc-display">
             <div class="calc-expr" x-text="calcExpr || '0'"></div>
             <div class="calc-result" x-text="calcPreview()"></div>
@@ -191,15 +194,12 @@
             <button type="button" class="calc-key" @click="calcPress('1')">1</button>
             <button type="button" class="calc-key" @click="calcPress('2')">2</button>
             <button type="button" class="calc-key" @click="calcPress('3')">3</button>
-            <button type="button" class="calc-key calc-op" @click="calcEquals()">=</button>
-            <button type="button" class="calc-key" style="grid-column: span 2;" @click="calcPress('0')">0</button>
+            <button type="button" class="calc-key calc-eq" @click="calcEquals()">=</button>
+            <button type="button" class="calc-key" @click="calcPress('00')">00</button>
+            <button type="button" class="calc-key" @click="calcPress('0')">0</button>
             <button type="button" class="calc-key" @click="calcPress('.')">.</button>
-            <button type="button" class="calc-key calc-fn" @click="calcPress('00')">00</button>
           </div>
-          <div style="display:flex; gap:8px; margin-top:16px;">
-            <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="showCalc = false">ยกเลิก</button>
-            <button class="btn btn-primary" style="flex:1;" :disabled="calcValue() === null" @click="applyCalc()">ใช้ค่านี้</button>
-          </div>
+          <button class="btn btn-primary btn-block calc-apply" :disabled="calcValue() === null" @click="applyCalc()">ใช้ค่านี้</button>
         </div>
       </div>
 
