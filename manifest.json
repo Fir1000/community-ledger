@@ -1,6 +1,6 @@
 {
-  "name": "Daily Fir",
-  "short_name": "Daily Fir",
+  "name": "FiN",
+  "short_name": "FiN",
   "description": "เว็บแอปบันทึกรายรับ-รายจ่ายสำหรับบัญชี",
   "start_url": "/app/dashboard.html",
   "scope": "/",
