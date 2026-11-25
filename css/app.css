@@ -86,7 +86,6 @@ h3 {
 .app-shell {
   display: flex;
   min-height: 100vh;
-  isolation: isolate; /* ให้ลายน้ำ (z-index:-1) อยู่หลังการ์ด แต่ยังอยู่หน้าพื้นหลัง body */
 }
 
 /* ลายน้ำ: แท่งกราฟโตขึ้นด้านล่าง + เส้นกราฟพุ่งไปหาดาว (การเงิน · ความฝัน · ดาต้า)
@@ -100,6 +99,7 @@ h3 {
   bottom: 0;
   left: 0;
   pointer-events: none;
+  /* -1 = อยู่หลังการ์ด; ห้ามใส่ isolation ที่ .app-shell เพราะจะทำให้ modal ไปอยู่ใต้ bottom-nav */
   z-index: -1;
 }
 
@@ -1002,6 +1002,19 @@ a:focus-visible {
   margin-top: 14px;
   padding: 14px;
   font-size: 1.05rem;
+}
+
+/* ปุ่มบันทึก/ยกเลิกในฟอร์ม: ติดขอบล่างของ modal เสมอ ไม่ต้องเลื่อนหา */
+.modal-actions {
+  position: sticky;
+  bottom: calc(-22px - env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  margin: 16px -20px 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: var(--color-card-bg);
+  border-top: 1px solid var(--color-border);
+  z-index: 1;
 }
 
 @keyframes fade-in {

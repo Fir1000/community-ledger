@@ -148,7 +148,7 @@
 
           <p x-show="errorMsg" x-text="errorMsg" style="color:#c0392b; font-size:0.9rem;"></p>
 
-          <div style="display:flex; gap:8px; margin-top:16px;">
+          <div class="modal-actions">
             <button class="btn" style="flex:1; border:1px solid var(--color-border);" @click="closeForm()">ยกเลิก</button>
             <button class="btn btn-primary" style="flex:1;" :disabled="saving || !form.payment_method" @click="submitForm()">
               <span x-text="saving ? 'กำลังบันทึก...' : 'บันทึก'"></span>
