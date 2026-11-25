@@ -52,15 +52,20 @@
 
       <p class="text-muted" style="font-weight:600; margin-bottom:8px;">สรุปเดือนนี้</p>
       <div class="card monthly-card">
-        <div class="monthly-tile">
-          <div class="monthly-label"><span class="monthly-dot dot-income"></span>รายรับ</div>
-          <div class="monthly-amount" x-text="formatCurrency(totalIncome)"></div>
+        <div class="monthly-top">
+          <div class="monthly-col">
+            <div class="monthly-label"><span class="monthly-dot dot-income"></span>รายรับ</div>
+            <div class="monthly-amount monthly-income" x-text="formatCurrency(totalIncome)"></div>
+          </div>
+          <div class="monthly-col is-right">
+            <div class="monthly-label"><span class="monthly-dot dot-expense"></span>รายจ่าย</div>
+            <div class="monthly-amount monthly-expense" x-text="formatCurrency(totalExpense)"></div>
+          </div>
         </div>
-        <div class="monthly-tile">
-          <div class="monthly-label"><span class="monthly-dot dot-expense"></span>รายจ่าย</div>
-          <div class="monthly-amount" x-text="formatCurrency(totalExpense)"></div>
-        </div>
-        <div class="monthly-tile monthly-balance">
+        <div class="monthly-bottom" :class="balance < 0 ? 'is-negative' : ''">
+          <svg class="monthly-wave" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 10 C 70 -2, 140 30, 220 36 S 340 14, 400 0 L400 40 L0 40 Z" fill="currentColor"/>
+          </svg>
           <div class="monthly-label"><span class="monthly-dot dot-balance"></span>คงเหลือ</div>
           <div class="monthly-amount" x-text="formatCurrency(balance)"></div>
         </div>
@@ -108,7 +113,7 @@
         <div class="chip-row">
           <button class="chip" :class="trendRange === '1d' ? 'active' : ''" @click="setTrendRange('1d')">1 วัน</button>
           <button class="chip" :class="trendRange === '1m' ? 'active' : ''" @click="setTrendRange('1m')">30 วัน</button>
-          <button class="chip" :class="trendRange === '1y' ? 'active' : ''" @click="setTrendRange('1y')">1 ปี</button>
+          <button class="chip" :class="trendRange === 'all' ? 'active' : ''" @click="setTrendRange('all')">ทั้งหมด</button>
         </div>
 
         <div x-show="!trendLoading && trendIncomeMoM !== null" style="display:flex; gap:16px; margin-bottom:10px; font-size:0.85rem;">
@@ -265,7 +270,7 @@
         expenseCategoryChartInstance: null,
         incomeLegend: [],
         expenseLegend: [],
-        trendRange: "1y",
+        trendRange: "all",
         trendRequestId: 0,
         trendLoading: true,
         trendHasData: false,
@@ -620,6 +625,11 @@
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         },
 
+        // เช่น "พ.ย. 69" (ปี พ.ศ. 2 หลัก) ใช้เมื่อกราฟคร่อมหลายปี
+        monthYearLabel(year, month) {
+          return `${this.monthNames[month - 1]} ${String((year + 543) % 100).padStart(2, "0")}`;
+        },
+
         pctChange(prev, cur) {
           if (prev > 0) return ((cur - prev) / prev) * 100;
           return cur > 0 ? 100 : 0;
@@ -690,17 +700,25 @@
                 expenseSeries.push(expenseByDate[key] || 0);
               }
             } else {
-              const year = now.getFullYear();
-              const startDate = `${year}-01-01`;
-              const endDate = `${year}-12-31`;
-              const monthKeys = Array.from({ length: 12 }, (_, i) => ({ year, month: i + 1 }));
-
+              // ทั้งหมด: ทุกเดือนตั้งแต่รายการแรกที่เคยจด จนถึงเดือนปัจจุบัน
               const { data } = await DB.listTransactions({
                 communityId: window.CURRENT_COMMUNITY_ID,
-                startDate,
-                endDate,
+                endDate: this.toISODate(now),
               });
               rawTransactions = data || [];
+
+              const firstDate = rawTransactions.reduce(
+                (min, tx) => (tx.transaction_date < min ? tx.transaction_date : min),
+                this.toISODate(now)
+              );
+              const [firstYear, firstMonth] = firstDate.split("-").map(Number);
+              const monthKeys = [];
+              for (let y = firstYear, mo = firstMonth; y < now.getFullYear() || (y === now.getFullYear() && mo <= now.getMonth() + 1); ) {
+                monthKeys.push({ year: y, month: mo });
+                mo++;
+                if (mo > 12) { mo = 1; y++; }
+              }
+              const multiYear = firstYear !== now.getFullYear();
               const incomeByKey = {};
               const expenseByKey = {};
               (data || []).forEach((t) => {
@@ -710,7 +728,7 @@
               });
               monthKeys.forEach(({ year, month }) => {
                 const key = `${year}-${String(month).padStart(2, "0")}`;
-                labels.push(this.monthNames[month - 1]);
+                labels.push(multiYear ? this.monthYearLabel(year, month) : this.monthNames[month - 1]);
                 incomeSeries.push(incomeByKey[key] || 0);
                 expenseSeries.push(expenseByKey[key] || 0);
               });
@@ -767,7 +785,7 @@
 
           const profitSeries = incomeSeries.map((v, i) => v - expenseSeries[i]);
           const formatCurrency = this.formatCurrency;
-          const isMonthlyRange = this.trendRange === "1y";
+          const isMonthlyRange = this.trendRange === "all";
           const pctChange = this.pctChange;
 
           const datasets = [
@@ -878,8 +896,8 @@
 
           // ป้ายแกน X ของแต่ละรายการ (ช่วงที่ไม่ใช่ 1 วัน): วันที่ที่จด
           const labels = transactions.map((t) => {
-            const [, month, day] = t.transaction_date.split("-").map(Number);
-            if (this.trendRange === "1y") return monthNames[month - 1];
+            const [year, month, day] = t.transaction_date.split("-").map(Number);
+            if (this.trendRange === "all") return this.monthYearLabel(year, month);
             return `${day} ${monthNames[month - 1]}`;
           });
 
