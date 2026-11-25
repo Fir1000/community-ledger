@@ -1,4 +1,4 @@
-const CACHE_NAME = "community-ledger-v34";
+const CACHE_NAME = "community-ledger-v35";
 
 const PRECACHE_URLS = [
   "/",
