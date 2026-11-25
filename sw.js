@@ -1,4 +1,4 @@
-const CACHE_NAME = "community-ledger-v32";
+const CACHE_NAME = "community-ledger-v33";
 
 const PRECACHE_URLS = [
   "/",
@@ -23,13 +23,16 @@ const PRECACHE_URLS = [
   "/js/pwa.js",
   "/js/theme.js",
   "/manifest.json",
-  "/assets/icons/icon-192.png",
-  "/assets/icons/icon-512.png",
+  "/assets/icons/fin-192.png",
+  "/assets/icons/fin-512.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) =>
+      // cache: "reload" ข้าม HTTP cache ของเบราว์เซอร์ ไม่งั้นอาจได้ไฟล์เก่า (assets ตั้ง immutable 1 ปี)
+      cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: "reload" })))
+    )
   );
   self.skipWaiting();
 });
